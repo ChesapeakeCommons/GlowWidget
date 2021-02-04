@@ -51,6 +51,11 @@ SUNY$PlaceHolder2 <- "ZZZZZZ"
 ToledoMetroGovernments <- read_csv("Data/ToledoMetroGovernments.csv")
 
 
+#Reading in Hucs and stations from a join in QGIS 
+Hucs <- read_csv("Data/Huc8Stations.csv")
+
+#Descriptive Text about groups made from G sheets 
+GroupText <- read_csv("Data/GroupText.csv")
 
 
 #Function for processing data into clean format - variables described above in the documentation
@@ -76,6 +81,7 @@ DataCleaner <- function(inDf,inGroup,inDO, inNitrate, inPhosphate, inpH, inTurbi
                           "Temperature"= inTemperature)%>%
                            filter(!is.na(station_id))%>%
                            filter(!is.na(collection_date))%>%
+                           filter(!is.na(latitude))%>%
                            mutate(Group = inGroup)%>%
                            mutate(Color = inColor)%>%
                            mutate(Date = as.Date(substring(collection_date,1,10)))%>%
@@ -127,18 +133,48 @@ CombinedData <- bind_rows(Rocky_Cleaned,
 #Creating Marker Size column off of sample station count - custom function dictated by sizing of icons
 CombinedData$MarkerSize <- (sqrt(CombinedData$StationSampleCount) * .3) + 5
 
+#Pulling out the stations with below 5 sample count
 CombinedData <- CombinedData %>% 
                 filter(StationSampleCount > 5)
 
-
-
+#Merging in huc names
 
 
 
 #Exporting out
-write.csv(CombinedData, "Data/Combined_Data6.csv", row.names = FALSE)
+#write.csv(CombinedData, "Data/Combined_Data7.csv", row.names = FALSE)
+
+## Ending Input Data ## 
+## Group Layer ## 
+#Raw Combined data with just groups
+CombinedDataHucsWGroups <- CombinedData %>%
+                      ungroup()%>%
+                      select(Group,station_id)%>%
+                      merge(Hucs)%>%
+                      distinct()
+
+GroupData <- CombinedData %>%
+            select(Group,TotalSamples,YearRange,station_id)%>%
+            ungroup()%>%
+            select(-c(station_id))%>%
+            group_by(Group)%>%
+            summarize(TotalSamples = first(TotalSamples), YearRange = first(YearRange))%>%
+            mutate(YearRange = ifelse(YearRange == 0, 1, YearRange))
+
+CombinedDataHucsGrouped <- CombinedDataHucsWGroups %>%
+                           select(Group,NAME)%>%
+                           group_by(Group)%>%
+                           distinct()%>%
+                           mutate(HucList = paste0(NAME, collapse = ", "))%>%
+                           select(-c(NAME))%>%
+                           distinct()
 
 
+### Group Data with total samples, years sampled, and watersheds present #### 
+GroupData <- merge(GroupData,CombinedDataHucsGrouped)
+
+GroupDataFinal <- merge(GroupData,GroupText)
 
 
+write.csv(GroupDataFinal, "Data/GroupData2.csv", row.names = FALSE)
 

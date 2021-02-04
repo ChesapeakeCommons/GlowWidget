@@ -12,10 +12,16 @@ library(leaflet.extras)
 library(htmltools)
 library(xts)
 library(dygraphs)
+library(lubridate)
+library(reactlog)
+library(sp)
+library(rgdal)
+options(shiny.reactlog=TRUE) 
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   mainPanel(
+            uiOutput("GroupText"),
             leafletOutput("LeafMap", height = 225, width = 650),
             tags$h3(textOutput("ChartOneTitle")),
             dygraphOutput("ChartOne", height = 200, width = 700),
@@ -34,6 +40,7 @@ ui <- fluidPage(
                uiOutput("ParameterTwoFilter"),
                selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart Two", "All Data"), selected = "Chart One", multiple = FALSE),
                downloadButton('DataDownload', 'Download')),
+               
 
 )
 
@@ -42,19 +49,23 @@ server <- function(input, output, session) {
     
     
 #### DATA IMPORT #####
-InputData <- read_csv("Data/Combined_Data6.csv")
-#### END DATA IMPORT #### 
+InputData <- read_csv("Data/Combined_Data7.csv")
 
-
+GroupData <- read_csv("Data/GroupData1.csv")
+print(GroupData)
 # Variable Decleration
 #Map Data
-MapDataReactive <- reactiveValues(df = data.frame())
-MapDataReactive$df <- as.data.frame(InputData)
-        
+MapDataReactive <- reactiveValues(df = data.frame(InputData))
 
 #Station One Data 
 #Defaults to first station in the input dataset
 StationOneReactive <- reactiveValues(S = as.character())
+
+#Selected Marker for map
+SelectedMarkerOne <- reactiveValues(df = data.frame())
+
+#This needs a default set because it doesn't operate off a reactive like the first station
+SelectedMarkerTwo <- reactiveValues(df = data.frame(filter(isolate(MapDataReactive$df), station_name %in% isolate(input$StationTwoSelect))))
 
 #ParameterList 
 ParameterList <- c("Dissolved Oxygen","Nitrate","Phosphate","pH","Turbidity","Temperature")
@@ -62,6 +73,11 @@ ParameterList <- c("Dissolved Oxygen","Nitrate","Phosphate","pH","Turbidity","Te
 #Colors for Parameters 
 Colors <- c("#0B4F6C","#855A5C","#8A8E91","#B8D4E3","#20BF55","#F2C57C")
 ParamColors <- data.frame(ParameterList,Colors)
+
+#Huc Layer 
+Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson")
+
+#### END DATA IMPORT #### 
     
 #### FILTERS #####
 #Group Select
@@ -73,8 +89,6 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
 #Also updates options for the first station select 
    observeEvent(input$GroupSelect, {
     #Map Data filtering 
-    x <- data.frame(input$GroupSelect)
-    
     if("All Champions" %in% input$GroupSelect)
     {
     MapDataReactive$df <- InputData
@@ -111,7 +125,6 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
      })
  
  #Turning the input into a reactive value so we can change it based on mapmarker clicks
-
  observeEvent(input$StationOneSelect,{
    StationOneReactive$S <- as.character(input$StationOneSelect)
   # print(StationOneReactive$S)
@@ -139,39 +152,90 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
     
     
     
-#### MAP #####
+#### GROUP TEXT #####
+output$GroupText <- renderUI({
 
+GroupName <- MapDataReactive$df %>%
+            filter(station_name == StationOneReactive$S)%>%
+            select(Group)%>%
+            distinct()%>%
+            as.character()
+
+GroupFrame <- filter(GroupData, Group == GroupName)
+           
+tagList(
+paste0(GroupFrame$Group),
+HTML("<br/>"),
+paste0("Watershed(s): ", GroupFrame$HucList),
+HTML("<br/>"),
+paste0("# of Samples: ", GroupFrame$TotalSamples),
+HTML("<br/>"),
+paste0("Years Sampling: ", GroupFrame$YearRange),
+HTML("<br/>"),
+paste0(GroupFrame$Description),
+)
+
+#print(input$GroupSelect)
+#GroupFrame <- filter()
+  
+
+})
+ #### END  GROUP TEXT  #####
+ 
+#### MAP #####
 #Map Decleration
 output$LeafMap <- renderLeaflet({
      leaflet("LeafMap")%>%
      addProviderTiles("CartoDB.VoyagerLabelsUnder", group = "Streets")%>%
+     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Hucs", options = list(zIndex = 1)) %>%
+     addProviderTiles("Esri.WorldTopoMap", group = "Terrain")%>%
+     addProviderTiles("GeoportailFrance.orthos", group = "Satellite")%>%
+     addLayersControl(overlayGroups = c("Hucs"),
+                     baseGroups = c("Streets", "Terrain", "Satellite"),
+                     options = layersControlOptions(collapsed = FALSE,  position = 'bottomright'))%>%
      setView(lng = -81.7, lat = 42.4, zoom = 6.25)
 })
+ PopupMaker <- function(df)
+ {
+ LastSampled <- df %>%
+                arrange(desc(collection_date))%>% 
+                select(collection_date)%>%
+                slice(1L)
+                # mutate(Date = as.Date(substring(collection_date,1,10)))%>% 
+                # select(Date)%>%
+                # slice(1L)%>%
+                # as.character()
+ #print(class(LastSampled))
+ print(LastSampled)
+ PopupString <- paste("Group:", df$Group, "<br>",
+                      "Station:", df$station_name, "<br>",
+                      "Last Sampled:",LastSampled, "<br>",
+                      "# of Samples:", df$StationSampleCount, "<br>")
+
+
+
+
+  return(PopupString)
+ }
  
  
 #Function for drawing selected markers - takes a color parameter 
 SelectedMarkerUpdate <- function(df,ColorCode)
 {
-  leafletProxy("LeafMap")%>%
-  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, color = ColorCode, radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-                   layerId = df$station_name, group = ~Group)
+  suppressWarnings(leafletProxy("LeafMap")%>%
+  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, color = ColorCode, radius = ~ (MarkerSize), options = list(zIndex = 3), label = ~ paste(Group, ": ", station_name, sep = ""),
+                   layerId = df$station_name, group = ~Group, popup = PopupMaker(df)))
 }
 
 #Function for drawing regular dataframe - only takes the df
 NonSelectedMarkerUpdate <- function(df)
 {
-  leafletProxy("LeafMap")%>%
-  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, color = ~Color, radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-                   layerId = df$station_name, group = ~Group) 
+  suppressWarnings(leafletProxy("LeafMap")%>%
+  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, color = ~Color, radius = ~ (MarkerSize), options = list(zIndex = 3), label = ~ paste(Group, ": ", station_name, sep = ""),
+                   layerId = df$station_name, group = ~Group))
 }
 
-#Original Map Creation
-observeEvent(MapDataReactive$df,
-    {
-    leafletProxy("LeafMap")%>%
-    clearMarkers()
-    NonSelectedMarkerUpdate(MapDataReactive$df)
-    })
+
 
 #MapMarker Click Station One Selection
   #Sets the StationOneReactive to equal the  selected station
@@ -188,50 +252,20 @@ StationOneReactive$S <- MapDataReactive$df %>%
 updateSelectizeInput(session, "StationOneSelect", label = NULL, choices = unique(MapDataReactive$df$station_name), selected = StationOneReactive$S)
 })
 
-#Highlights the Selected Station One 
-SelectedMarkerOne <- reactiveValues(df = data.frame())
-SelectedMarkerTwo <- reactiveValues(df = data.frame(filter(isolate(MapDataReactive$df), station_name %in% isolate(input$StationTwoSelect))))
 
-
-observeEvent(StationOneReactive$S,
-             {
-              leafletProxy("LeafMap")%>%
-              removeMarker(SelectedMarkerOne$df$station_name )
-
-              SelectedMarkerOne$df <- filter(MapDataReactive$df, station_name %in% StationOneReactive$S)
-              
-              NonSelectedMarkerUpdate(MapDataReactive$df)
-              SelectedMarkerUpdate(SelectedMarkerOne$df,"#fc090a")
-              SelectedMarkerUpdate(SelectedMarkerTwo$df,"#800080")
-              
-              #leafletProxy("LeafMap")%>%
-              # addCircleMarkers(data = MapDataReactive$df, lng = ~longitude, lat = ~latitude, color = ~Color, radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-              #                    layerId = MapDataReactive$df$station_name, group = ~Group)%>%
-              # addCircleMarkers(data = SelectedMarkerOne$df, lng = ~longitude, lat = ~latitude, color = "#fc090a", radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-              #                  layerId = SelectedMarkerOne$df$station_name, group = ~Group)%>%
-              # addCircleMarkers(data = SelectedMarkerTwo$df, lng = ~longitude, lat = ~latitude, color = "#800080", radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-              #                   layerId = SelectedMarkerTwo$df$station_name, group = ~Group)
-             })
-
-
-observeEvent(input$StationTwoSelect,
-             {
-               leafletProxy("LeafMap")%>%
-               removeMarker(SelectedMarkerTwo$df$station_name)
-               SelectedMarkerTwo$df <- filter(MapDataReactive$df, station_name %in% input$StationTwoSelect)
-               NonSelectedMarkerUpdate(MapDataReactive$df)
-               SelectedMarkerUpdate(SelectedMarkerOne$df,"#fc090a")
-               SelectedMarkerUpdate(SelectedMarkerTwo$df,"#800080")
-
-               # leafletProxy("LeafMap")%>%
-               # addCircleMarkers(data = MapDataReactive$df, lng = ~longitude, lat = ~latitude, color = ~Color, radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-               #                  layerId =MapDataReactive$df$station_name, group = ~Group)%>%
-               # addCircleMarkers(data = SelectedMarkerTwo$df, lng = ~longitude, lat = ~latitude, color = "#800080", radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-               #                  layerId = SelectedMarkerTwo$df$station_name, group = ~Group)%>%
-               # addCircleMarkers(data = SelectedMarkerOne$df, lng = ~longitude, lat = ~latitude, color = "#fc090a", radius = ~ (MarkerSize), label = ~ paste(Group, ": ", station_name, sep = ""),
-               #                  layerId = SelectedMarkerOne$df$station_name, group = ~Group)
-             })
-
+#Oberves when any data is changed 
+observe({
+  #Forgot that the map only needs a universe of stations - not samples. So filtering down to only distinct station_names 
+  MapingDF <- MapDataReactive$df %>%
+              distinct(station_name, .keep_all = TRUE)
+  SelectedMarkerOne$df <- filter(MapingDF, station_name %in% StationOneReactive$S)
+  SelectedMarkerTwo$df <- filter(MapingDF, station_name %in% input$StationTwoSelect)
+  leafletProxy("LeafMap")%>%
+  clearMarkers()
+  NonSelectedMarkerUpdate(MapingDF)
+  SelectedMarkerUpdate(SelectedMarkerOne$df,"#fc090a")
+  SelectedMarkerUpdate(SelectedMarkerTwo$df,"#800080")
+})
 
 
 
@@ -306,7 +340,8 @@ dygraph(df, group = "test") %>%
     dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
     dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = input$ParmaterOneSelect) %>%
     dyLegend(show = "follow", width = 150) %>%
-    dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE) 
+    dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE)
+
 })
 #### END CHART 1 #####
     
@@ -331,6 +366,7 @@ ChartTwoData <- reactive({
   return(df)
 })
 
+#Chart Two Title
 output$ChartTwoTitle <- renderText({ 
   if(nrow(ChartTwoData()) < 2 || (nrow(ChartTwoData()) - sum(is.na(ChartTwoData()))) == 0)
   {
@@ -342,7 +378,7 @@ output$ChartTwoTitle <- renderText({
   }
 })
 
-
+#Chart Two Chart Render
 output$ChartTwo <- renderDygraph({
   df <- ChartTwoData()
   
@@ -367,16 +403,18 @@ output$ChartTwo <- renderDygraph({
 ##### DOWNLOADS #### 
 ## Download Parser ## 
 DownloadSelectionReactive <- reactive({
-paste(input$DownloadSelect)
+
+  
 if(input$DownloadSelect == "Chart One")
 {
 Data <- ChartOneData()
 }
+  
 if(input$DownloadSelect == "Chart Two")
 {
 Data <- ChartTwoData()
 }
-else
+if(input$DownloadSelect == "All Data")
 {
 Data <- InputData %>% 
         select(-c(Color,YearRange,MarkerSize))
