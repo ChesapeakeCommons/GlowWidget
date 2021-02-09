@@ -1,5 +1,5 @@
 # GLOW Phase 1 Station Comparison Widget
-# Github: https://github.com/Gabe8850/GlowWidget.git
+# Github: https://github.com/ChesapeakeCommons/GlowWidget.git
 # Design: https://drive.google.com/file/d/1m63OYeS0qDsyOZtQBauhzdCa0CTK_U43/view?usp=sharing
 # Created by Gabe Watson for The Commons 
 # Created 01.11.2020 
