@@ -1,5 +1,5 @@
 # GLOW Phase 1 Station Comparison Widget
-# Github: https://github.com/Gabe8850/GlowWidget.git
+# Github: https://github.com/Chesapeakez/GlowWidget.git
 # Design: https://drive.google.com/file/d/1m63OYeS0qDsyOZtQBauhzdCa0CTK_U43/view?usp=sharing
 # Created by Gabe Watson for The Commons 
 # Created 01.11.2020 
@@ -21,6 +21,7 @@ options(shiny.reactlog=TRUE)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   mainPanel(
+            actionButton("Info","Info"),
             uiOutput("GroupText"),
             leafletOutput("LeafMap", height = 225, width = 650),
             tags$h3(textOutput("ChartOneTitle")),
@@ -46,7 +47,7 @@ ui <- fluidPage(
                uiOutput("ParameterOneFilter"),
                uiOutput("StationTwoFilter"),
                uiOutput("ParameterTwoFilter"),
-               selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart Two", "All Data"), selected = "Chart One", multiple = FALSE),
+               selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary", "All Data Summary"), selected = "Chart One", multiple = FALSE),
                downloadButton('DataDownload', 'Download')),
                
 
@@ -102,7 +103,39 @@ ParamColors <- data.frame(ParameterList,Colors)
 Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson")
 
 #### END DATA IMPORT #### 
-    
+
+
+
+##### MODEL #### 
+observeEvent(input$Info,{
+showModal(modalDialog(
+  title = "Cleveland Water Alliance's GLOW Widget!",
+  HTML("This application does things with things! <br> Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+       sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
+       quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+       Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+       Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
+   easyClose = TRUE,
+   footer = NULL,
+))
+  
+  
+  
+})
+
+
+
+
+#### END MODEL #### 
+
+
+
+
+
+
+
+
+
 #### FILTERS #####
 #Group Select
 output$GroupFilter <- renderUI({
@@ -145,10 +178,7 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
  #ObserveEvent altering MapDataReactive$df to display on the map
  #Also updates options for the first station select 
  observeEvent(input$GroupSelect, {
-   #req(input$StationOneSelect)
-   #req(input$StationTwoSelect)
-   #req(input$ParameterOneSelect)
-   #req(input$ParameterTwoSelect)
+
    #Map Data filtering 
    if("All Champions" %in% input$GroupSelect)
    {
@@ -160,30 +190,32 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    }
    
    #Default Selection for a station is the first and second most sampled stations in the group list
-   DefaultStationOne$S <- MapDataReactive$df %>% 
-     arrange(desc(StationSampleCount))%>% 
-     select(station_name)%>%
-     unique()%>%
-     slice(1L)%>%
-     as.character()
+
    
-   DefaultStationTwo$S <- MapDataReactive$df %>% 
-     arrange(desc(StationSampleCount))%>% 
-     select(station_name)%>%
-     unique()%>%
-     slice(2L)%>%
-     as.character()
+   
+   
+   Choices <- MapDataReactive$df %>%
+              arrange(desc(StationSampleCount))%>%
+              select(station_name)%>%
+              unique()
+   
+   DefaultStationOne$S <- Choices %>%
+                         slice(1L)%>%
+                         as.character()
+   
+   DefaultStationTwo$S <- Choices %>%
+                         slice(2L)%>%
+                         as.character()
+     
+     
+     
+      print(Choices)
    
    #Station One Select 
-   updateSelectizeInput(session, "StationOneSelect", choices = unique(MapDataReactive$df$station_name), selected = DefaultStationOne$S)
-   updateSelectizeInput(session, "StationTwoSelect", choices = unique(MapDataReactive$df$station_name), selected = DefaultStationTwo$S)
+   updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
+   updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
  })
 #### END FILTERS #####
-# Check section, make sure to remove at some point
-# print(isolate(MapDataReactive$df))
-# print(isolate(input$StationOneSelect))
-# print(isolate(DefaultStationOne$S))
-# print(isolate(StationOneReactive$S))
     
 #### GROUP TEXT #####
 output$GroupText <- renderUI({
@@ -537,21 +569,93 @@ output$ChartTwoTable <- renderTable({
 ## Download Parser ## 
 DownloadSelectionReactive <- reactive({
 
-  
 if(input$DownloadSelect == "Chart One")
 {
-Data <- ChartOneData()
+  GroupName <- MapDataReactive$df %>%
+    filter(station_name == StationOneReactive$S)%>%
+    select(Group)%>%
+    slice(1L)%>%
+    as.matrix()%>%
+    c()
+  
+  Unit <- ParamUnits %>%
+    filter(ParameterList == input$ParameterOneSelect)%>%
+    select(Units)%>%
+    mutate(Units = ifelse(input$ParameterOneSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
+    as.matrix()%>%
+    c()
+  
+  Data <- InputData %>%
+    filter(station_name == StationOneReactive$S)%>%
+    select(station_id,station_name,latitude,longitude,collection_date,input$ParameterOneSelect)%>%
+    mutate(Units = Unit)
+}
+  
+if(input$DownloadSelect == "Chart One Summary")
+{
+ Data <- TableMaker(MapDataReactive$df,StationOneReactive$S)
+         Data <- data.frame(ParameterList,Data)
 }
   
 if(input$DownloadSelect == "Chart Two")
 {
-Data <- ChartTwoData()
+  GroupName <- MapDataReactive$df %>%
+    filter(station_name == input$StationTwoSelect)%>%
+    select(Group)%>%
+    slice(1L)%>%
+    as.matrix()%>%
+    c()
+  
+  Unit <- ParamUnits %>%
+    filter(ParameterList == input$ParameterTwoSelect)%>%
+    select(Units)%>%
+    mutate(Units = ifelse(input$ParameterTwoSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
+    as.matrix()%>%
+    c()
+  
+  Data <- InputData %>%
+    filter(station_name == input$StationTwoSelect)%>%
+    select(station_id,station_name,latitude,longitude,collection_date,input$ParameterTwoSelect)%>%
+    mutate(Units = Unit)
+
 }
+  
+  if(input$DownloadSelect == "Chart Two Summary")
+  {
+    Data <- TableMaker(MapDataReactive$df,input$StationTwoSelect)
+    Data <- data.frame(ParameterList,Data)
+  }
+  
 if(input$DownloadSelect == "All Data")
 {
 Data <- InputData %>% 
         select(-c(Color,YearRange,MarkerSize))
 }
+  
+  if(input$DownloadSelect == "All Data Summary")
+  {
+    df <- MapDataReactive$df %>%
+      select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature,Group))%>%
+      mutate(Turbidity = ifelse(Group == "Euclid" | Group == "Rocky",NA,Turbidity))%>%
+      select(-c(Group))
+    
+    Mean <- sapply(df, mean, na.rm=TRUE)
+    Median <- sapply(df, median, na.rm=TRUE)
+    Minimum <- sapply(df, min, na.rm=TRUE)
+    Max <- sapply(df, max, na.rm=TRUE)
+    `Standard Deviation` <- sapply(df, sd, na.rm = TRUE)
+    
+    #Binding and rounding to 3 digits
+    df <- round(cbind(Mean,Median,Minimum,Max,`Standard Deviation`),3)
+    
+    # Turning infintes to NA
+    is.na(df) <- sapply(df, is.infinite)
+    # Turning NAs to -
+    df[is.na(df)] = "-"
+    
+    Data <- data.frame(ParameterList,df)
+  }
+  
 return(Data)
 })
 
