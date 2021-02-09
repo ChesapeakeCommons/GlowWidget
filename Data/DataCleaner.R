@@ -127,8 +127,11 @@ CombinedData <- bind_rows(Rocky_Cleaned,
                           FirelandsCoastalTributaries_Cleaned,
                           HuronRiver_Cleaned,
                           ToledoMetroParks_Cleaned,
-                          SUNY_Cleaned,
-                          ToledoMetroGovernments_Cleaned)
+                          ToledoMetroGovernments_Cleaned,
+                          SUNY_Cleaned)
+
+#For some reason, SUNY was being dropped. 
+CombinedData <- bind_rows(CombinedData, SUNY_Cleaned)
 
 #Creating Marker Size column off of sample station count - custom function dictated by sizing of icons
 CombinedData$MarkerSize <- (sqrt(CombinedData$StationSampleCount) * .3) + 5
@@ -137,13 +140,137 @@ CombinedData$MarkerSize <- (sqrt(CombinedData$StationSampleCount) * .3) + 5
 CombinedData <- CombinedData %>% 
                 filter(StationSampleCount > 5)
 
-#Merging in huc names
 
+## CLEANED DATA AFTER CHECKS BELOW### 
+#ATTEMPTED TO GET NICE DISTRIBUTION FOR ALL VARIABLES## 
+CombinedDataCleaned <- CombinedData %>%
+  mutate(pH = ifelse(pH > 11 | pH < 2, NA, pH))%>%
+  mutate(`Dissolved Oxygen` = ifelse(`Dissolved Oxygen` > 25 | `Dissolved Oxygen` <= 0, NA, `Dissolved Oxygen`))%>%
+  mutate(Phosphate = ifelse(Phosphate > 3,NA,Phosphate))%>%
+  mutate(Turbidity = ifelse(Group == "Euclid",Turbidity*2.54,Turbidity))%>%
+  mutate(Turbidity = ifelse(Group == "Euclid",Turbidity*2.54,Turbidity))%>%
+  mutate(Temperature = ifelse(Temperature > 80, NA, Temperature))%>%
+  mutate(Temperature = ifelse(Temperature > 60,(Temperature -32)/1.8000,Temperature))
 
 
 #Exporting out
-#write.csv(CombinedData, "Data/Combined_Data7.csv", row.names = FALSE)
+#write.csv(CombinedDataCleaned, "Data/Combined_Data8.csv", row.names = FALSE)
 
+
+
+
+### OK WE NEED TO CLEAN SOME VALUES BEFORE SAVING OUT ### 
+### Running some stats on the combined data ### 
+## Basic stats for the parameters ###
+
+# 
+# #pH
+# #WILL REMOVE 
+# #ALL VALUES OVER 11 and 1 
+# ggplot(CombinedData %>% filter(pH < 29)) +
+#     geom_histogram(aes(x = pH), bins = 200)
+# #Looks good as an overall Distribution 
+# 
+# 
+# #Dissolved Oxygen
+# #WILL REMOVE 
+# #ALL VALUES > 25 and <= 0
+
+# ggplot(CombinedData) +
+#   geom_histogram(aes(x = `Dissolved Oxygen`), bins = 200)
+
+# ggplot(CombinedData %>% filter(`Dissolved Oxygen` < 25)) +
+#   geom_histogram(aes(x = `Dissolved Oxygen`), bins = 200)
+# 
+# 
+# 
+# #Nitrate
+# #So fireland coastal tributaries has a lot of high values in the 20's but they all seem to be downstream of a massive quary/concrete
+# #mfg thing, and the distribution just looking at the group aloine is similiar to the full spread minus the group 
+# ggplot(CombinedData)+
+#   geom_histogram(aes(x = Nitrate), bins = 200)
+# 
+# ggplot(CombinedData %>% filter(Group == "Firelands Coastal Tributaries"))+
+#   geom_histogram(aes(x = Nitrate), bins = 200)
+# 
+# ggplot(CombinedData %>% filter(Group != "Firelands Coastal Tributaries"))+
+#   geom_histogram(aes(x = Nitrate), bins = 200)
+# 
+# 
+# 
+# #Phosphate
+# # Going to remove values less than 3
+# #Its crazy to ge a value more than 1, but most of the sites with high values are in super suburban areas. 
+# ggplot(CombinedData)+
+#   geom_histogram(aes(x = Phosphate), bins = 200)
+# 
+# #Phosphate
+# ggplot(CombinedData %>% filter(Phosphate < 3))+
+#   geom_histogram(aes(x = Phosphate), bins = 200)
+# 
+# 
+# 
+# #Turbidity 
+# #Ok no really easy way to convert from NTU to cm
+# #Euclid needs to be converted from inches to cm 
+ggplot(CombinedData)+
+  geom_histogram(aes(x = Turbidity), bins = 200)
+# 
+# ggplot(CombinedData %>% filter(Turbidity < .1))+
+#   geom_histogram(aes(x = Turbidity), bins = 200)
+# 
+# 
+# 
+# 
+# 
+# #Temperature 
+# # Removing values greater than 66
+# # Converting values between 30 and 66 to C as we assume these are F from SUNY fredonia 
+# #(Note all samples in the higher rante (20-30 fell during Aug and July in highly suburban areas )
+# ggplot(CombinedData)+
+#   geom_histogram(aes(x = Temperature), bins = 200)
+# 
+# ggplot(CombinedData %>% filter(Temperature < 30))+
+#   geom_histogram(aes(x = Temperature), bins = 200)
+# 
+# ggplot(CombinedData %>% filter(Temperature > 20))+
+#   geom_histogram(aes(x = Temperature), bins = 200)
+
+
+#Checking out Turbidity again, yes the inches peak moved next to the Cm peak on the hist, 
+#will just display with different units and note in disclaimer 
+  
+# ggplot(CombinedDataCleaned)+
+#   geom_histogram(aes(x = Turbidity), bins = 200)
+# 
+# ggplot(CombinedData)+
+#   geom_histogram(aes(x = Turbidity), bins = 200)
+
+
+#Checking out Temp again 
+# ggplot(CombinedDataCleaned)+
+#   geom_histogram(aes(x = Temperature), bins = 200)
+# 
+# ggplot(CombinedData)+
+#   geom_histogram(aes(x = Temperature), bins = 200)
+
+#Sweet, looks like an actually histogram now. 
+
+# #Checking out DO and PH,
+# #All plots look fairly unifirom 
+# ggplot(CombinedDataCleaned) +
+#   geom_histogram(aes(x = `Dissolved Oxygen`), bins = 200)
+# 
+# ggplot(CombinedDataCleaned) +
+#   geom_histogram(aes(x = pH), bins = 200)
+# 
+
+
+
+
+
+
+### GROUP SECTION 
 ## Ending Input Data ## 
 ## Group Layer ## 
 #Raw Combined data with just groups
