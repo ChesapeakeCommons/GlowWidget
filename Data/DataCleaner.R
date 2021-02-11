@@ -146,18 +146,11 @@ CombinedData <- CombinedData %>%
 CombinedDataCleaned <- CombinedData %>%
   mutate(pH = ifelse(pH > 11 | pH < 2, NA, pH))%>%
   mutate(`Dissolved Oxygen` = ifelse(`Dissolved Oxygen` > 25 | `Dissolved Oxygen` <= 0, NA, `Dissolved Oxygen`))%>%
-  mutate(Phosphate = ifelse(Phosphate > 3,NA,Phosphate))%>%
+  mutate(Phosphate = ifelse(Phosphate > 3 ,NA,Phosphate))%>%
   mutate(Turbidity = ifelse(Group == "Euclid",Turbidity*2.54,Turbidity))%>%
-  mutate(Turbidity = ifelse(Group == "Euclid",Turbidity*2.54,Turbidity))%>%
+  mutate(Turbidity = ifelse(Group == "Rocky",Turbidity*2.54,Turbidity))%>%
   mutate(Temperature = ifelse(Temperature > 80, NA, Temperature))%>%
   mutate(Temperature = ifelse(Temperature > 60,(Temperature -32)/1.8000,Temperature))
-
-
-#Exporting out
-#write.csv(CombinedDataCleaned, "Data/Combined_Data8.csv", row.names = FALSE)
-
-
-
 
 ### OK WE NEED TO CLEAN SOME VALUES BEFORE SAVING OUT ### 
 ### Running some stats on the combined data ### 
@@ -213,8 +206,8 @@ CombinedDataCleaned <- CombinedData %>%
 # #Turbidity 
 # #Ok no really easy way to convert from NTU to cm
 # #Euclid needs to be converted from inches to cm 
-ggplot(CombinedData)+
-  geom_histogram(aes(x = Turbidity), bins = 200)
+# ggplot(CombinedData)+
+#   geom_histogram(aes(x = Turbidity), bins = 200)
 # 
 # ggplot(CombinedData %>% filter(Turbidity < .1))+
 #   geom_histogram(aes(x = Turbidity), bins = 200)
@@ -266,6 +259,17 @@ ggplot(CombinedData)+
 # 
 
 
+StationHucs <- Hucs %>%
+               select(station_name,NAME)
+
+#Now adding in the Hucs so they can appear in the popups 
+CombinedDataCleanedHucs <- inner_join(StationHucs,CombinedDataCleaned) %>% distinct_all()
+
+  
+  
+  ####### FINAL EXPORT LEAVE THIS UNCOMMENTED UNLESS SAVING OUT ####### 
+  write.csv(CombinedDataCleanedHucs, "Data/Combined_Data9.csv", row.names = FALSE)
+  
 
 
 

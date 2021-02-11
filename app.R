@@ -4,6 +4,10 @@
 # Created by Gabe Watson for The Commons 
 # Created 01.11.2020 
 # See last commit on Git 
+# TO FIX
+ # - #Selected Marker 'should' be able to cover all bases covered by Default Station, and StationOneReactive
+ # - #Turn Chart 1 and 2 into a fuction. 
+ # - #Functionanize a lot of the common activities like get group, get parameter, get color, get Choices etc.  
 
 library(shiny)
 library(tidyverse)
@@ -57,12 +61,15 @@ ui <- fluidPage(
 server <- function(input, output, session) {
     
     
-#### DATA IMPORT #####
-InputData <- read_csv("Data/Combined_Data8.csv")
+#### DATA IMPORT AND VARIABLE DECLERATION #####
+InputData <- read_csv("Data/Combined_Data9.csv")
 
 GroupData <- read_csv("Data/GroupData1.csv")
-print(GroupData)
-# Variable Decleration
+
+#Huc Layer 
+Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson")
+
+#Variable Decleration
 #Map Data
 MapDataReactive <- reactiveValues(df = data.frame(InputData))
 
@@ -70,24 +77,29 @@ MapDataReactive <- reactiveValues(df = data.frame(InputData))
 #Defaults to first station in the input dataset
 StationOneReactive <- reactiveValues(S = as.character())
 
+#Default One station data reactive 
+#Used to set the default station after group choice - might turn this into a function !
 DefaultStationOne <- reactiveValues(S = as.character(InputData %>% 
                                                        arrange(desc(StationSampleCount))%>% 
                                                        select(station_name)%>%
                                                        unique()%>%
                                                        slice(1L)))
-
+#Default station two data reactive
 DefaultStationTwo <- reactiveValues(S = as.character(InputData %>% 
                                                        arrange(desc(StationSampleCount))%>% 
                                                        select(station_name)%>%
                                                        unique()%>%
                                                        slice(12)))
+ChartOneRender <- reactiveValues(N = as.numeric())
 
 #Selected Marker for map
 SelectedMarkerOne <- reactiveValues(df = data.frame())
 
 #This needs a default set because it doesn't operate off a reactive like the first station
-SelectedMarkerTwo <- reactiveValues(df = data.frame(filter(isolate(MapDataReactive$df), station_name %in% isolate(input$StationTwoSelect))))
 
+SelectedMarkerTwo <- reactiveValues(S = isolate(DefaultStationTwo$S)) 
+
+# Extra Info for Charting
 #ParameterList 
 ParameterList <- c("Dissolved Oxygen","Nitrate","Phosphate","pH","Turbidity","Temperature")
 
@@ -99,8 +111,7 @@ ParamUnits <- data.frame(ParameterList,Units)
 Colors <- c("#0B4F6C","#855A5C","#8A8E91","#B8D4E3","#20BF55","#F2C57C")
 ParamColors <- data.frame(ParameterList,Colors)
 
-#Huc Layer 
-Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson")
+
 
 #### END DATA IMPORT #### 
 
@@ -122,18 +133,7 @@ showModal(modalDialog(
   
   
 })
-
-
-
-
 #### END MODEL #### 
-
-
-
-
-
-
-
 
 
 #### FILTERS #####
@@ -142,8 +142,6 @@ output$GroupFilter <- renderUI({
 selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", InputData$Group), selected = "All Champions", multiple = TRUE)
 })
 
-
-   
 #Station One Filter
  output$StationOneFilter <- renderUI({
      #StationSelect
@@ -152,9 +150,9 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
  
  #Turning the input into a reactive value so we can change it based on mapmarker clicks
  observeEvent(input$StationOneSelect,{
-  # print(input$StationOneSelect)
+
    StationOneReactive$S <- as.character(input$StationOneSelect)
-  # print(StationOneReactive$S)
+
  })
  
  #Paremeter One Filter 
@@ -190,10 +188,6 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    }
    
    #Default Selection for a station is the first and second most sampled stations in the group list
-
-   
-   
-   
    Choices <- MapDataReactive$df %>%
               arrange(desc(StationSampleCount))%>%
               select(station_name)%>%
@@ -209,7 +203,6 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
      
      
      
-      print(Choices)
    
    #Station One Select 
    updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
@@ -239,10 +232,11 @@ paste0("# of Samples: ", GroupFrame$TotalSamples),
 HTML("<br/>"),
 paste0("Years Sampling: ", GroupFrame$YearRange),
 HTML("<br/>"),
+paste0("Website: ", GroupFrame$SiteLink),
+HTML("<br/>"),
 paste0(GroupFrame$Description),
 )
 
-#print(input$GroupSelect)
 #GroupFrame <- filter()
   
 
@@ -254,23 +248,24 @@ paste0(GroupFrame$Description),
 output$LeafMap <- renderLeaflet({
      leaflet("LeafMap")%>%
      addProviderTiles("CartoDB.VoyagerLabelsUnder", group = "Streets")%>%
-     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Hucs", options = list(zIndex = 1)) %>%
+     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = list(zIndex = 1), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
      addProviderTiles("Esri.WorldTopoMap", group = "Terrain")%>%
      addProviderTiles("GeoportailFrance.orthos", group = "Satellite")%>%
-     addLayersControl(overlayGroups = c("Hucs"),
+     addLayersControl(overlayGroups = c("Watersheds"),
                      baseGroups = c("Streets", "Terrain", "Satellite"),
                      options = layersControlOptions(collapsed = FALSE,  position = 'bottomright'))%>%
      setView(lng = -81.7, lat = 42.4, zoom = 6.25)
 })
  
- 
+ #Constructs the popup for the leaflet map
  PopupMaker <- function(df)
  {
    req(SelectedMarkerOne$df)
    req(SelectedMarkerTwo$df)
    req(input$StationOneSelect)
    req(input$StationTwoSelect)
-   #req(input$MapDataReactive$df)
+  
+ #Gets the last sample date of the station ! needs work
  LastSampled <- df %>%
                 arrange(desc(collection_date))%>% 
                 select(collection_date)%>%
@@ -279,12 +274,13 @@ output$LeafMap <- renderLeaflet({
                 # select(Date)%>%
                 # slice(1L)%>%
                 # as.character()
- #print(class(LastSampled))
- print(LastSampled)
+ 
+ #Popup String
  PopupString <- paste("Group:", df$Group, "<br>",
                       "Station:", df$station_name, "<br>",
                       "Last Sampled:",LastSampled, "<br>",
-                      "# of Samples:", df$StationSampleCount, "<br>")
+                      "# of Samples:", df$StationSampleCount, "<br>",
+                      "Watershed:", df$NAME)
 
 
 
@@ -393,7 +389,7 @@ TableMaker <- function(df,station)
 #Chart One Data Reactive 
 ChartOneData <- reactive({
 req(MapDataReactive$df)
-req(StationOneReactive)
+req(StationOneReactive$S)
 req(input$StationOneSelect)
 req(input$ParameterOneSelect) 
 
@@ -401,42 +397,54 @@ df <- MapDataReactive$df %>%
       filter(station_name == StationOneReactive$S) %>%
       select(station_name,collection_date,input$ParameterOneSelect)
 
+ChartOneRender$N <- nrow(df) - sum(is.na(df))
+       
+
 #Converting to proper format for Dygraphs 
 df <- xts(df, order.by = as.Date(df$collection_date))
 
-print(nrow(df) - sum(is.na(df)))
 
-#Testing Print   
+                                 
+
+print(ChartOneRender$N)
 print(df)
+#Testing Print   
+
 return(df)
 })
-
-#Chart 1 Title 
-output$ChartOneTitle <- renderText({ 
-  req(ChartOneData())
-  df <- ChartOneData()
-  #Changes chart title if there is insufficient data for the dygraph, 
-  #or if the entire param is missing because the group doesn't collect it.
-#  print(ChartOneData())
-  if(nrow(ChartOneData()) < 2 || nrow(ChartOneData()) - sum(is.na(ChartOneData())) == 0)
+# 
+ChartTitleMaker <- function(df,Station,Parameter)
+{
+  if(nrow(df) - sum(is.na(df)) == 0)
   {
-  paste(StationOneReactive$S, ": ", "Insufficient Data", sep = "")
+    paste(Station, ": ", "Insufficient Data", sep = "")
   }
   else
   {
-  paste(StationOneReactive$S, ": ", input$ParameterOneSelect, sep = "")
+    paste(Station, ": ", Parameter, sep = "")
   }
+}
+#Chart 1 Title 
+output$ChartOneTitle <- renderText({ 
+  req(ChartOneData())
+  req(input$ParameterOneSelect)
+  ChartTitleMaker(ChartOneData(),StationOneReactive$S,input$ParameterOneSelect)
+
 })
 
+#Chart One Render 
 output$ChartOne <- renderDygraph({
 req(ChartOneData())
+  if(ChartOneRender$N != 0)
+  {
 df <- ChartOneData()
-#print(ChartTwoData())
+
 ColorOneChoice <- ParamColors %>%
                filter(ParameterList == input$ParameterOneSelect)%>%
                select(Colors)%>%
                as.matrix()%>%
                c()
+
 GroupName <- MapDataReactive$df %>%
          filter(station_name == input$StationOneSelect)%>%
          select(Group)%>%
@@ -444,14 +452,14 @@ GroupName <- MapDataReactive$df %>%
          as.matrix()%>%
          c()
 
-print(GroupName)      
-#Checking to see if
 Unit <- ParamUnits %>%
         filter(ParameterList == input$ParameterOneSelect)%>%
         select(Units)%>%
         mutate(Units = ifelse(input$ParameterOneSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
         as.matrix()%>%
         c()
+
+print(ChartOneRender$N)
 
 #Chart One Dygraph
 dygraph(df, group = "test") %>%
@@ -461,7 +469,7 @@ dygraph(df, group = "test") %>%
     dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
     dyLegend(show = "follow", width = 150) %>%
     dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE)
-
+ }
 })
 
 
@@ -494,9 +502,8 @@ ChartTwoData <- reactive({
   
   #Converting to proper format for Dygraphs 
   df <- xts(df, order.by = as.Date(df$collection_date))
-  
-  #Testing Print   
-  #print(df)
+
+
   return(df)
 })
 
@@ -638,6 +645,7 @@ Data <- InputData %>%
       select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature,Group))%>%
       mutate(Turbidity = ifelse(Group == "Euclid" | Group == "Rocky",NA,Turbidity))%>%
       select(-c(Group))
+
     
     Mean <- sapply(df, mean, na.rm=TRUE)
     Median <- sapply(df, median, na.rm=TRUE)
