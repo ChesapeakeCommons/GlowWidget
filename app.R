@@ -62,12 +62,13 @@ server <- function(input, output, session) {
     
     
 #### DATA IMPORT AND VARIABLE DECLERATION #####
-InputData <- read_csv("Data/Combined_Data9.csv")
 
-GroupData <- read_csv("Data/GroupData1.csv")
+suppressMessages(InputData <- read_csv("Data/Combined_Data9.csv"))
+
+suppressMessages(GroupData <- read_csv("Data/GroupData1.csv"))
 
 #Huc Layer 
-Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson")
+suppressMessages(Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson"))
 
 #Variable Decleration
 #Map Data
@@ -120,6 +121,7 @@ ParamColors <- data.frame(ParameterList,Colors)
 #Get Group 
 GetGroup <- function(df,Station)
 {
+
 GroupName <- df %>%
   filter(station_name == Station)%>%
   select(Group)%>%
@@ -132,6 +134,7 @@ GroupName <- df %>%
 #Get Unit 
 GetUnit <- function(Parameter,GroupName)
 {
+
   Unit <- ParamUnits %>%
     filter(ParameterList == Parameter)%>%
     select(Units)%>%
@@ -224,10 +227,6 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    DefaultStationTwo$S <- Choices %>%
                          slice(2L)%>%
                          as.character()
-     
-     
-     
-   
    #Station One Select 
    updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
    updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
@@ -256,9 +255,6 @@ paste0("Website: ", GroupFrame$SiteLink),
 HTML("<br/>"),
 paste0(GroupFrame$Description),
 )
-
-#GroupFrame <- filter()
-  
 
 })
  #### END  GROUP TEXT  #####
@@ -301,9 +297,6 @@ output$LeafMap <- renderLeaflet({
                       "Last Sampled:",LastSampled, "<br>",
                       "# of Samples:", df$StationSampleCount, "<br>",
                       "Watershed:", df$NAME)
-
-
-
 
   return(PopupString)
  }
@@ -380,28 +373,6 @@ observeEvent(input$LeafMap_click, {
 
 
 ## CHART SECTION FUNCTIONS
-# function for generating data table
-TableMaker <- function(df,station)
-{
-  df <- MapDataReactive$df %>%
-    filter(station_name == station)%>%
-    select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature))
-
-    Mean <- sapply(df, mean, na.rm=TRUE)
-    Median <- sapply(df, median, na.rm=TRUE)
-    Minimum <- sapply(df, min, na.rm=TRUE)
-    Max <- sapply(df, max, na.rm=TRUE)
-    `Standard Deviation` <- sapply(df, sd, na.rm = TRUE)
-    
-    #Binding and rounding to 3 digits
-    df <- round(cbind(Mean,Median,Minimum,Max,`Standard Deviation`),3)
-   
-    # Turning infintes to NA
-     is.na(df) <- sapply(df, is.infinite)
-    # Turning NAs to -
-     df[is.na(df)] = "-"
-  return(df)
-}
 
 #Function for making table
 ChartDataMaker <- function(df,Station,Parameter)
@@ -410,16 +381,25 @@ dfOut <- df %>%
   filter(station_name == Station) %>%
   select(station_name,collection_date,Parameter)
 
+#Checks to see if there is insufficent data to plot, turns the dataset into one row, and sets Parameter value to one. This bypasses any dygraph funkiness with NAs and....
+#Also takes advantage of dygraphs natural (but unwanted) nature to not chart single data points
+if(nrow(dfOut) - sum(is.na(dfOut)) == 0)
+{
+  dfOut <- dfOut %>%
+           slice(1)
+  dfOut[3] <- 1
+}
+print(dfOut)
 
 dfOut <- xts(dfOut, order.by = as.Date(dfOut$collection_date))
-print(dfOut)
 return(dfOut)
 }
 
 #Function for making title
 ChartTitleMaker <- function(df,Station,Parameter)
 {
-  if(nrow(df) - sum(is.na(df)) == 0)
+  #Checks to see if there is unsufficent data
+  if(nrow(df) < 2)
   {
     paste(Station, ": ", "Insufficient Data", sep = "")
   }
@@ -432,10 +412,7 @@ ChartTitleMaker <- function(df,Station,Parameter)
 #Function for making Chart
 ChartMaker <- function(df,Station,Parameter)
 {
-  req(ChartOneData())
-  df <- ChartOneData()
-
-  ColorOneChoice <- ParamColors %>%
+  ColorChoice<- ParamColors %>%
                  filter(ParameterList == Parameter)%>%
                  select(Colors)%>%
                  as.matrix()%>%
@@ -444,17 +421,39 @@ ChartMaker <- function(df,Station,Parameter)
   GroupName <- GetGroup(MapDataReactive$df,Station)
 
   Unit <- GetUnit(Parameter,GroupName)
+ # print(Unit)
 
-
-  return(dygraph(df, group = "test") %>%
+  return(dygraph(df) %>%
       dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
-      dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = FALSE, rightGap = 10, colors = ColorOneChoice) %>%
+      dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = TRUE, rightGap = 10, colors = ColorChoice) %>%
       dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
       dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
       dyLegend(show = "follow", width = 150) %>%
       dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE))
 }
 
+# function for generating data table
+TableMaker <- function(df,station)
+{
+  df <- MapDataReactive$df %>%
+    filter(station_name == station)%>%
+    select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature))
+  
+  Mean <- sapply(df, mean, na.rm=TRUE)
+  Median <- sapply(df, median, na.rm=TRUE)
+  Minimum <- sapply(df, min, na.rm=TRUE)
+  Max <- sapply(df, max, na.rm=TRUE)
+  `Standard Deviation` <- sapply(df, sd, na.rm = TRUE)
+  
+  #Binding and rounding to 3 digits
+  df <- round(cbind(Mean,Median,Minimum,Max,`Standard Deviation`),3)
+  
+  # Turning infintes to NA
+  is.na(df) <- sapply(df, is.infinite)
+  # Turning NAs to -
+  df[is.na(df)] = "-"
+  return(df)
+}
 #### CHART 1 Calls #####
 #Chart One Data
 ChartOneData <- reactive({
@@ -478,6 +477,8 @@ output$ChartOneTitle <- renderText({
 
 #Chart One Dygraph
   output$ChartOne <- renderDygraph({
+    req(input$StationOneSelect)
+    req(input$ParameterOneSelect)
   ChartMaker(ChartOneData(),input$StationOneSelect,input$ParameterOneSelect)
 })
   
@@ -491,7 +492,6 @@ output$ChartOneTitle <- renderText({
     width = "100%",
     striped = TRUE,
     align = 'l')
-  
   #### END CHART 1 #####
   
   
@@ -514,12 +514,14 @@ output$ChartOneTitle <- renderText({
   
   #Chart Two Dygraph
   output$ChartTwo <- renderDygraph({
+    req(input$StationTwoSelect)
+    req(input$ParameterTwoSelect)
     ChartMaker(ChartTwoData(),input$StationTwoSelect,input$ParameterTwoSelect)
   })
   
   #Chart Two Table
   output$ChartTwoTable <- renderTable({
-    req(StationTwoReactive)
+    req(input$StationTwoSelect)
     req(MapDataReactive)
     head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
     rownames = TRUE,
@@ -528,11 +530,14 @@ output$ChartOneTitle <- renderText({
     align = 'l')
 
 #### END CHART 2 #####
+  
+
 #### END CHART SECTION
 
 
 ##### DOWNLOADS #### 
 ## Download Parser ## 
+
 DownloadSelectionReactive <- reactive({
 
 if(input$DownloadSelect == "Chart One")
