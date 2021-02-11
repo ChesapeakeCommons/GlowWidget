@@ -110,11 +110,35 @@ ParamUnits <- data.frame(ParameterList,Units)
 #Colors for Parameters 
 Colors <- c("#0B4F6C","#855A5C","#8A8E91","#B8D4E3","#20BF55","#F2C57C")
 ParamColors <- data.frame(ParameterList,Colors)
-
-
-
 #### END DATA IMPORT #### 
 
+
+
+#### GLOBAL FUNCTIONS 
+#Frequent opperations required during program 
+
+#Get Group 
+GetGroup <- function(df,Station)
+{
+GroupName <- df %>%
+  filter(station_name == Station)%>%
+  select(Group)%>%
+  slice(1L)%>%
+  as.matrix()%>%
+  c()
+  return(GroupName)
+}
+
+#Get Unit 
+GetUnit <- function(Parameter,GroupName)
+{
+  Unit <- ParamUnits %>%
+    filter(ParameterList == Parameter)%>%
+    select(Units)%>%
+    mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
+    as.matrix()%>%
+    c()
+}
 
 
 ##### MODEL #### 
@@ -215,11 +239,7 @@ output$GroupText <- renderUI({
   req(MapDataReactive$df)
   req(StationOneReactive$S)
 
-GroupName <- MapDataReactive$df %>%
-            filter(station_name == StationOneReactive$S)%>%
-            select(Group)%>%
-            distinct()%>%
-            as.character()
+GroupName <- GetGroup(MapDataReactive$df,StationOneReactive$S)
 
 GroupFrame <- filter(GroupData, Group == GroupName)
            
@@ -359,7 +379,7 @@ observeEvent(input$LeafMap_click, {
     
 
 
-## CHART SECTION
+## CHART SECTION FUNCTIONS
 # function for generating data table
 TableMaker <- function(df,station)
 {
@@ -383,6 +403,7 @@ TableMaker <- function(df,station)
   return(df)
 }
 
+#Function for making table
 ChartDataMaker <- function(df,Station,Parameter)
 {
 dfOut <- df %>%
@@ -395,7 +416,7 @@ print(dfOut)
 return(dfOut)
 }
 
-#Chart Title Maker
+#Function for making title
 ChartTitleMaker <- function(df,Station,Parameter)
 {
   if(nrow(df) - sum(is.na(df)) == 0)
@@ -408,9 +429,7 @@ ChartTitleMaker <- function(df,Station,Parameter)
   }
 }
 
-#### CHART 1 #####
-
-
+#Function for making Chart
 ChartMaker <- function(df,Station,Parameter)
 {
   req(ChartOneData())
@@ -422,19 +441,10 @@ ChartMaker <- function(df,Station,Parameter)
                  as.matrix()%>%
                  c()
   
-  GroupName <- MapDataReactive$df %>%
-           filter(station_name == Station)%>%
-           select(Group)%>%
-           slice(1L)%>%
-           as.matrix()%>%
-           c()
-  #
-  Unit <- ParamUnits %>%
-          filter(ParameterList == Parameter)%>%
-          select(Units)%>%
-          mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
-          as.matrix()%>%
-          c()
+  GroupName <- GetGroup(MapDataReactive$df,Station)
+
+  Unit <- GetUnit(Parameter,GroupName)
+
 
   return(dygraph(df, group = "test") %>%
       dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
@@ -445,14 +455,16 @@ ChartMaker <- function(df,Station,Parameter)
       dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE))
 }
 
-
+#### CHART 1 Calls #####
 #Chart One Data
 ChartOneData <- reactive({
   req(MapDataReactive$df)
   req(StationOneReactive$S)
   req(input$StationOneSelect)
   req(input$ParameterOneSelect) 
+  
   df <- ChartDataMaker(MapDataReactive$df,StationOneReactive$S,input$ParameterOneSelect)
+  
   return(df)
 })
 
@@ -460,8 +472,8 @@ ChartOneData <- reactive({
 output$ChartOneTitle <- renderText({ 
   req(ChartOneData())
   req(input$ParameterOneSelect)
-  ChartTitleMaker(ChartOneData(),StationOneReactive$S,input$ParameterOneSelect)
   
+  ChartTitleMaker(ChartOneData(),StationOneReactive$S,input$ParameterOneSelect)
 })
 
 #Chart One Dygraph
@@ -480,9 +492,10 @@ output$ChartOneTitle <- renderText({
     striped = TRUE,
     align = 'l')
   
+  #### END CHART 1 #####
   
   
-  
+  #### CHART TWO CALLS #### 
   #Chart Two Data
   ChartTwoData <- reactive({
     req(MapDataReactive$df)
@@ -497,7 +510,6 @@ output$ChartOneTitle <- renderText({
     req(ChartTwoData())
     req(input$ParameterTwoSelect)
     ChartTitleMaker(ChartTwoData(),input$StationTwoSelect,input$ParameterTwoSelect)
-    
   })
   
   #Chart Two Dygraph
@@ -509,95 +521,11 @@ output$ChartOneTitle <- renderText({
   output$ChartTwoTable <- renderTable({
     req(StationTwoReactive)
     req(MapDataReactive)
-    
     head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
     rownames = TRUE,
     width = "100%",
     striped = TRUE,
     align = 'l')
-
-#### END CHART 1 #####
-    
-    
-#     
-# #### CHART 2 #####
-# #Chart Two Data Reactive 
-# ChartTwoData <- reactive({
-#   req(MapDataReactive$df)
-#   req(input$StationTwoSelect)
-#   req(input$ParameterTwoSelect) 
-#   
-#   df <- MapDataReactive$df %>%
-#     filter(station_name == input$StationTwoSelect) %>%
-#     select(station_name, collection_date,input$ParameterTwoSelect)
-#   
-#   #Converting to proper format for Dygraphs 
-#   df <- xts(df, order.by = as.Date(df$collection_date))
-# 
-# 
-#   return(df)
-# })
-# 
-# #Chart Two Title
-# output$ChartTwoTitle <- renderText({ 
-#   req(ChartTwoData())
-#   if(nrow(ChartTwoData()) < 2 || (nrow(ChartTwoData()) - sum(is.na(ChartTwoData()))) == 0)
-#   {
-#     paste(input$StationTwoSelect, ": ", "Insufficient Data", sep = "")
-#   }
-#   else
-#   {
-#     paste(input$StationTwoSelect, ": ", input$ParameterTwoSelect, sep = "")
-#   }
-# })
-# 
-# #Chart Two Chart Render
-# output$ChartTwo <- renderDygraph({
-#   req(ChartTwoData())
-#   df <- ChartTwoData()
-# 
-#   ColorTwoChoice <- ParamColors %>%
-#     filter(ParameterList == input$ParameterTwoSelect)%>%
-#     select(Colors)%>%
-#     as.matrix()%>%
-#     c()
-#   
-#   GroupName <- MapDataReactive$df %>%
-#     filter(station_name == input$StationOneSelect)%>%
-#     select(Group)%>%
-#     slice(1L)%>%
-#     as.matrix()%>%
-#     c()
-#   
-#   Unit <- ParamUnits %>%
-#     filter(ParameterList == input$ParameterTwoSelect)%>%
-#     select(Units)%>%
-#     mutate(Units = ifelse(input$ParameterTwoSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
-#     as.matrix()%>%
-#     c()
-# 
-#   #Chart Two Dygraph
-#   dygraph(df, group = "test") %>%
-#     dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
-#     dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = FALSE, rightGap = 10, colors = ColorTwoChoice) %>% 
-#     dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
-#     dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
-#     dyLegend(show = "follow", width = 150) %>%
-#     dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE) 
-# })
-# 
-# #Chart Two Table
-# output$ChartTwoTable <- renderTable({
-#   req(input$StationTwoSelect)
-#   req(MapDataReactive)
-#   
-#   head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
-#   rownames = TRUE,
-#   width = "100%",
-#   striped = TRUE,
-#   align = 'l')
-
-
 
 #### END CHART 2 #####
 #### END CHART SECTION
@@ -609,19 +537,10 @@ DownloadSelectionReactive <- reactive({
 
 if(input$DownloadSelect == "Chart One")
 {
-  GroupName <- MapDataReactive$df %>%
-    filter(station_name == StationOneReactive$S)%>%
-    select(Group)%>%
-    slice(1L)%>%
-    as.matrix()%>%
-    c()
+  GroupName <- GetGroup(MapDataReactive$df,StationOneReactive$S)
   
-  Unit <- ParamUnits %>%
-    filter(ParameterList == input$ParameterOneSelect)%>%
-    select(Units)%>%
-    mutate(Units = ifelse(input$ParameterOneSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
-    as.matrix()%>%
-    c()
+  Unit <- GetUnit(input$ParameterOneSelect,GroupName)
+  
   
   Data <- InputData %>%
     filter(station_name == StationOneReactive$S)%>%
@@ -637,19 +556,10 @@ if(input$DownloadSelect == "Chart One Summary")
   
 if(input$DownloadSelect == "Chart Two")
 {
-  GroupName <- MapDataReactive$df %>%
-    filter(station_name == input$StationTwoSelect)%>%
-    select(Group)%>%
-    slice(1L)%>%
-    as.matrix()%>%
-    c()
+
+  GroupName <- GetGroup(MapDataReactive$df,input$StationTwoSelect)
   
-  Unit <- ParamUnits %>%
-    filter(ParameterList == input$ParameterTwoSelect)%>%
-    select(Units)%>%
-    mutate(Units = ifelse(input$ParameterTwoSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
-    as.matrix()%>%
-    c()
+  Unit <- GetUnit(input$ParameterTwoSelect,GroupName)
   
   Data <- InputData %>%
     filter(station_name == input$StationTwoSelect)%>%
@@ -677,7 +587,6 @@ Data <- InputData %>%
       mutate(Turbidity = ifelse(Group == "Euclid" | Group == "Rocky",NA,Turbidity))%>%
       select(-c(Group))
 
-    
     Mean <- sapply(df, mean, na.rm=TRUE)
     Median <- sapply(df, median, na.rm=TRUE)
     Minimum <- sapply(df, min, na.rm=TRUE)
