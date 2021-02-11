@@ -383,36 +383,19 @@ TableMaker <- function(df,station)
   return(df)
 }
 
-
-  
-#### CHART 1 #####
-#Chart One Data Reactive 
-ChartOneData <- reactive({
-req(MapDataReactive$df)
-req(StationOneReactive$S)
-req(input$StationOneSelect)
-req(input$ParameterOneSelect) 
-
-df <- MapDataReactive$df %>%
-      filter(station_name == StationOneReactive$S) %>%
-      select(station_name,collection_date,input$ParameterOneSelect)
-
-ChartOneRender$N <- nrow(df) - sum(is.na(df))
-       
-
-#Converting to proper format for Dygraphs 
-df <- xts(df, order.by = as.Date(df$collection_date))
+ChartDataMaker <- function(df,Station,Parameter)
+{
+dfOut <- df %>%
+  filter(station_name == Station) %>%
+  select(station_name,collection_date,Parameter)
 
 
-                                 
+dfOut <- xts(dfOut, order.by = as.Date(dfOut$collection_date))
+print(dfOut)
+return(dfOut)
+}
 
-print(ChartOneRender$N)
-print(df)
-#Testing Print   
-
-return(df)
-})
-# 
+#Chart Title Maker
 ChartTitleMaker <- function(df,Station,Parameter)
 {
   if(nrow(df) - sum(is.na(df)) == 0)
@@ -424,147 +407,195 @@ ChartTitleMaker <- function(df,Station,Parameter)
     paste(Station, ": ", Parameter, sep = "")
   }
 }
+
+#### CHART 1 #####
+
+
+ChartMaker <- function(df,Station,Parameter)
+{
+  req(ChartOneData())
+  df <- ChartOneData()
+
+  ColorOneChoice <- ParamColors %>%
+                 filter(ParameterList == Parameter)%>%
+                 select(Colors)%>%
+                 as.matrix()%>%
+                 c()
+  
+  GroupName <- MapDataReactive$df %>%
+           filter(station_name == Station)%>%
+           select(Group)%>%
+           slice(1L)%>%
+           as.matrix()%>%
+           c()
+  #
+  Unit <- ParamUnits %>%
+          filter(ParameterList == Parameter)%>%
+          select(Units)%>%
+          mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
+          as.matrix()%>%
+          c()
+
+  return(dygraph(df, group = "test") %>%
+      dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
+      dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = FALSE, rightGap = 10, colors = ColorOneChoice) %>%
+      dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
+      dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
+      dyLegend(show = "follow", width = 150) %>%
+      dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE))
+}
+
+
+#Chart One Data
+ChartOneData <- reactive({
+  req(MapDataReactive$df)
+  req(StationOneReactive$S)
+  req(input$StationOneSelect)
+  req(input$ParameterOneSelect) 
+  df <- ChartDataMaker(MapDataReactive$df,StationOneReactive$S,input$ParameterOneSelect)
+  return(df)
+})
+
 #Chart 1 Title 
 output$ChartOneTitle <- renderText({ 
   req(ChartOneData())
   req(input$ParameterOneSelect)
   ChartTitleMaker(ChartOneData(),StationOneReactive$S,input$ParameterOneSelect)
-
+  
 })
-
-#Chart One Render 
-output$ChartOne <- renderDygraph({
-req(ChartOneData())
-  if(ChartOneRender$N != 0)
-  {
-df <- ChartOneData()
-
-ColorOneChoice <- ParamColors %>%
-               filter(ParameterList == input$ParameterOneSelect)%>%
-               select(Colors)%>%
-               as.matrix()%>%
-               c()
-
-GroupName <- MapDataReactive$df %>%
-         filter(station_name == input$StationOneSelect)%>%
-         select(Group)%>%
-         slice(1L)%>%
-         as.matrix()%>%
-         c()
-
-Unit <- ParamUnits %>%
-        filter(ParameterList == input$ParameterOneSelect)%>%
-        select(Units)%>%
-        mutate(Units = ifelse(input$ParameterOneSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
-        as.matrix()%>%
-        c()
-
-print(ChartOneRender$N)
 
 #Chart One Dygraph
-dygraph(df, group = "test") %>%
-    dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
-    dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = FALSE, rightGap = 10, colors = ColorOneChoice) %>% 
-    dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
-    dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
-    dyLegend(show = "follow", width = 150) %>%
-    dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE)
- }
+  output$ChartOne <- renderDygraph({
+  ChartMaker(ChartOneData(),input$StationOneSelect,input$ParameterOneSelect)
 })
-
-
-
-output$ChartOneTable <- renderTable({
-  req(StationOneReactive)
-  req(MapDataReactive)
-
-  head(TableMaker(MapDataReactive$df,StationOneReactive$S))},
-  rownames = TRUE,
-  width = "100%",
-  striped = TRUE,
-  align = 'l')
-
+  
+  #Chart One Table
+  output$ChartOneTable <- renderTable({
+    req(StationOneReactive)
+    req(MapDataReactive)
+    
+    head(TableMaker(MapDataReactive$df,StationOneReactive$S))},
+    rownames = TRUE,
+    width = "100%",
+    striped = TRUE,
+    align = 'l')
+  
+  
+  
+  
+  #Chart Two Data
+  ChartTwoData <- reactive({
+    req(MapDataReactive$df)
+    req(input$StationTwoSelect)
+    req(input$ParameterTwoSelect) 
+    df <- ChartDataMaker(MapDataReactive$df,input$StationTwoSelect,input$ParameterTwoSelect)
+    return(df)
+  })
+  
+  #Chart 1 Title 
+  output$ChartTwoTitle <- renderText({ 
+    req(ChartTwoData())
+    req(input$ParameterTwoSelect)
+    ChartTitleMaker(ChartTwoData(),input$StationTwoSelect,input$ParameterTwoSelect)
+    
+  })
+  
+  #Chart Two Dygraph
+  output$ChartTwo <- renderDygraph({
+    ChartMaker(ChartTwoData(),input$StationTwoSelect,input$ParameterTwoSelect)
+  })
+  
+  #Chart Two Table
+  output$ChartTwoTable <- renderTable({
+    req(StationTwoReactive)
+    req(MapDataReactive)
+    
+    head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
+    rownames = TRUE,
+    width = "100%",
+    striped = TRUE,
+    align = 'l')
 
 #### END CHART 1 #####
     
     
-    
-#### CHART 2 #####
-#Chart Two Data Reactive 
-ChartTwoData <- reactive({
-  req(MapDataReactive$df)
-  req(input$StationTwoSelect)
-  req(input$ParameterTwoSelect) 
-  
-  df <- MapDataReactive$df %>%
-    filter(station_name == input$StationTwoSelect) %>%
-    select(station_name, collection_date,input$ParameterTwoSelect)
-  
-  #Converting to proper format for Dygraphs 
-  df <- xts(df, order.by = as.Date(df$collection_date))
-
-
-  return(df)
-})
-
-#Chart Two Title
-output$ChartTwoTitle <- renderText({ 
-  req(ChartTwoData())
-  if(nrow(ChartTwoData()) < 2 || (nrow(ChartTwoData()) - sum(is.na(ChartTwoData()))) == 0)
-  {
-    paste(input$StationTwoSelect, ": ", "Insufficient Data", sep = "")
-  }
-  else
-  {
-    paste(input$StationTwoSelect, ": ", input$ParameterTwoSelect, sep = "")
-  }
-})
-
-#Chart Two Chart Render
-output$ChartTwo <- renderDygraph({
-  req(ChartTwoData())
-  df <- ChartTwoData()
-
-  ColorTwoChoice <- ParamColors %>%
-    filter(ParameterList == input$ParameterTwoSelect)%>%
-    select(Colors)%>%
-    as.matrix()%>%
-    c()
-  
-  GroupName <- MapDataReactive$df %>%
-    filter(station_name == input$StationOneSelect)%>%
-    select(Group)%>%
-    slice(1L)%>%
-    as.matrix()%>%
-    c()
-  
-  Unit <- ParamUnits %>%
-    filter(ParameterList == input$ParameterTwoSelect)%>%
-    select(Units)%>%
-    mutate(Units = ifelse(input$ParameterTwoSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
-    as.matrix()%>%
-    c()
-
-  #Chart Two Dygraph
-  dygraph(df, group = "test") %>%
-    dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
-    dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = FALSE, rightGap = 10, colors = ColorTwoChoice) %>% 
-    dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
-    dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
-    dyLegend(show = "follow", width = 150) %>%
-    dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE) 
-})
-
-#Chart Two Table
-output$ChartTwoTable <- renderTable({
-  req(input$StationTwoSelect)
-  req(MapDataReactive)
-  
-  head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
-  rownames = TRUE,
-  width = "100%",
-  striped = TRUE,
-  align = 'l')
+#     
+# #### CHART 2 #####
+# #Chart Two Data Reactive 
+# ChartTwoData <- reactive({
+#   req(MapDataReactive$df)
+#   req(input$StationTwoSelect)
+#   req(input$ParameterTwoSelect) 
+#   
+#   df <- MapDataReactive$df %>%
+#     filter(station_name == input$StationTwoSelect) %>%
+#     select(station_name, collection_date,input$ParameterTwoSelect)
+#   
+#   #Converting to proper format for Dygraphs 
+#   df <- xts(df, order.by = as.Date(df$collection_date))
+# 
+# 
+#   return(df)
+# })
+# 
+# #Chart Two Title
+# output$ChartTwoTitle <- renderText({ 
+#   req(ChartTwoData())
+#   if(nrow(ChartTwoData()) < 2 || (nrow(ChartTwoData()) - sum(is.na(ChartTwoData()))) == 0)
+#   {
+#     paste(input$StationTwoSelect, ": ", "Insufficient Data", sep = "")
+#   }
+#   else
+#   {
+#     paste(input$StationTwoSelect, ": ", input$ParameterTwoSelect, sep = "")
+#   }
+# })
+# 
+# #Chart Two Chart Render
+# output$ChartTwo <- renderDygraph({
+#   req(ChartTwoData())
+#   df <- ChartTwoData()
+# 
+#   ColorTwoChoice <- ParamColors %>%
+#     filter(ParameterList == input$ParameterTwoSelect)%>%
+#     select(Colors)%>%
+#     as.matrix()%>%
+#     c()
+#   
+#   GroupName <- MapDataReactive$df %>%
+#     filter(station_name == input$StationOneSelect)%>%
+#     select(Group)%>%
+#     slice(1L)%>%
+#     as.matrix()%>%
+#     c()
+#   
+#   Unit <- ParamUnits %>%
+#     filter(ParameterList == input$ParameterTwoSelect)%>%
+#     select(Units)%>%
+#     mutate(Units = ifelse(input$ParameterTwoSelect == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
+#     as.matrix()%>%
+#     c()
+# 
+#   #Chart Two Dygraph
+#   dygraph(df, group = "test") %>%
+#     dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
+#     dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = FALSE, rightGap = 10, colors = ColorTwoChoice) %>% 
+#     dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
+#     dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
+#     dyLegend(show = "follow", width = 150) %>%
+#     dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE) 
+# })
+# 
+# #Chart Two Table
+# output$ChartTwoTable <- renderTable({
+#   req(input$StationTwoSelect)
+#   req(MapDataReactive)
+#   
+#   head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
+#   rownames = TRUE,
+#   width = "100%",
+#   striped = TRUE,
+#   align = 'l')
 
 
 
