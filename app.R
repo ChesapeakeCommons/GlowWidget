@@ -27,14 +27,19 @@ ui <- fluidPage(
   mainPanel(
             actionButton("Info","Info"),
             uiOutput("GroupText"),
+            tags$h3(uiOutput("GroupValidate")),
+         #   uiOutput("StationOneValidate"),
             leafletOutput("LeafMap", height = 225, width = 650),
+            tags$h3(uiOutput("StationOneValidate")),
+            tags$h3(uiOutput("ParameterOneValidate")),
             tags$h3(textOutput("ChartOneTitle")),
             tabsetPanel(
             tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = 700)),
             tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
             ),
+            tags$h3(uiOutput("StationTwoValidate")),
+            tags$h3(uiOutput("ParameterTwoValidate")),
             tags$h3(textOutput("ChartTwoTitle")),
-          
             tabsetPanel(
               tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = 700)),
               tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
@@ -63,7 +68,7 @@ server <- function(input, output, session) {
     
 #### DATA IMPORT AND VARIABLE DECLERATION #####
 
-suppressMessages(InputData <- read_csv("Data/Combined_Data9.csv"))
+suppressMessages(InputData <- read_csv("Data/Combined_Data10.csv"))
 
 suppressMessages(GroupData <- read_csv("Data/GroupData1.csv"))
 
@@ -77,6 +82,9 @@ MapDataReactive <- reactiveValues(df = data.frame(InputData))
 #Station One Data 
 #Defaults to first station in the input dataset
 StationOneReactive <- reactiveValues(S = as.character())
+
+StationTwoReactive <- reactiveValues(S = as.character())
+GroupReactive <- reactiveValues(G = as.character())
 
 #Default One station data reactive 
 #Used to set the default station after group choice - might turn this into a function !
@@ -128,13 +136,18 @@ GroupName <- df %>%
   slice(1L)%>%
   as.matrix()%>%
   c()
+
+
   return(GroupName)
+
+  
 }
 
 #Get Unit 
 GetUnit <- function(Parameter,GroupName)
 {
-
+  #print(Parameter)
+  #print(GroupName)
   Unit <- ParamUnits %>%
     filter(ParameterList == Parameter)%>%
     select(Units)%>%
@@ -172,15 +185,8 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
 #Station One Filter
  output$StationOneFilter <- renderUI({
      #StationSelect
-     selectizeInput("StationOneSelect","Select Station One", choices = InputData$station_name, selected = DefaultStationOne$S, multiple = FALSE)
+     selectizeInput("StationOneSelect","Select Station One", choices = InputData$station_name, selected = DefaultStationOne$S, multiple = FALSE, options = list(placeholder = 'Select a Station'))
      })
- 
- #Turning the input into a reactive value so we can change it based on mapmarker clicks
- observeEvent(input$StationOneSelect,{
-
-   StationOneReactive$S <- as.character(input$StationOneSelect)
-
- })
  
  #Paremeter One Filter 
  output$ParameterOneFilter <- renderUI({
@@ -191,7 +197,7 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
 #Station Two Filter
  output$StationTwoFilter <- renderUI({
  #Station Two
- selectizeInput("StationTwoSelect","Select Station Two", choices = InputData$station_name, selected = DefaultStationTwo$S, multiple = FALSE)
+ selectizeInput("StationTwoSelect","Select Station Two", choices = InputData$station_name, selected = DefaultStationTwo$S, multiple = FALSE,  options = list(placeholder = 'Select a Station'))
  })
  
  #Paremeter One Filter 
@@ -203,6 +209,8 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
  #ObserveEvent altering MapDataReactive$df to display on the map
  #Also updates options for the first station select 
  observeEvent(input$GroupSelect, {
+   
+   #print(ifelse(input$GroupSelect == "NULL","Null","NotNull"))
 
    #Map Data filtering 
    if("All Champions" %in% input$GroupSelect)
@@ -211,6 +219,7 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    }
    else
    {
+    # print(input$GroupSelect)
      MapDataReactive$df <- filter(InputData, Group %in% input$GroupSelect)
    }
    
@@ -227,18 +236,75 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    DefaultStationTwo$S <- Choices %>%
                          slice(2L)%>%
                          as.character()
+   
+   StationOneReactive$S <- DefaultStationOne$S
+   StationTwoReactive$S <- DefaultStationTwo$S
+   
    #Station One Select 
    updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
    updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
  })
+ 
+ #Turning the input into a reactive value so we can change it based on mapmarker clicks
+ observeEvent(input$StationOneSelect,{
+   StationOneReactive$S <- as.character(input$StationOneSelect)
+ })
+ 
+ #Turning Station Two input to a reactive because it helps with rerendering errors 
+ observeEvent(input$StationTwoSelect,{
+   StationTwoReactive$S <- as.character(input$StationTwoSelect)
+ })
 #### END FILTERS #####
+ 
+######## VALIDATE SECTION ##########
+output$GroupValidate <- renderText({
+  #req(input$GroupSelect)
+  validate(
+    need(input$GroupSelect != "","Select a Group!")
+  )
+})
+ 
+output$StationOneValidate <- renderText({
+  #req(input$StationOneSelect)
+  validate(
+    need(input$StationOneSelect != "", "Select Station!")
+   )
+  
+  validate(
+    need(input$ParameterOneSelect != "", "Select a Parameter!")
+  )
+}) 
+ 
+output$StationTwoValidate <- renderText({
+  #req(input$StationTwoSelect)
+  validate(
+    need(input$StationTwoSelect != "","Select Station Two!")
+  )
+}) 
+ 
+# output$ParameterOneValidate <- renderText({
+#  # req(input$ParameterOneSelect)
+#   validate(
+#     need(input$ParameterOneSelect != "","Select Parameter One!")
+#   )
+# }) 
+ 
+output$ParameterTwoValidate <- renderText({
+ # req(input$ParameterTwoSelect)
+  validate(
+    need(input$ParameterTwoSelect != "","Select Parameter Two!")
+  )
+}) 
+ 
+######## END VALIDATE SECTION ########## 
     
 #### GROUP TEXT #####
 output$GroupText <- renderUI({
   req(MapDataReactive$df)
   req(StationOneReactive$S)
+  req(input$GroupSelect)
 
-GroupName <- GetGroup(MapDataReactive$df,StationOneReactive$S)
+GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
 
 GroupFrame <- filter(GroupData, Group == GroupName)
            
@@ -255,7 +321,6 @@ paste0("Website: ", GroupFrame$SiteLink),
 HTML("<br/>"),
 paste0(GroupFrame$Description),
 )
-
 })
  #### END  GROUP TEXT  #####
  
@@ -267,10 +332,12 @@ output$LeafMap <- renderLeaflet({
      addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = list(zIndex = 1), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
      addProviderTiles("Esri.WorldTopoMap", group = "Terrain")%>%
      addProviderTiles("GeoportailFrance.orthos", group = "Satellite")%>%
+    addSearchOSM(options = searchOptions(autoCollapse = TRUE, minLength = 2))%>%
      addLayersControl(overlayGroups = c("Watersheds"),
                      baseGroups = c("Streets", "Terrain", "Satellite"),
                      options = layersControlOptions(collapsed = FALSE,  position = 'bottomright'))%>%
      setView(lng = -81.7, lat = 42.4, zoom = 6.25)
+  
 })
  
  #Constructs the popup for the leaflet map
@@ -278,7 +345,7 @@ output$LeafMap <- renderLeaflet({
  {
    req(SelectedMarkerOne$df)
    req(SelectedMarkerTwo$df)
-   req(input$StationOneSelect)
+   req(StationOneReactive$S)
    req(input$StationTwoSelect)
   
  #Gets the last sample date of the station ! needs work
@@ -342,7 +409,7 @@ observe({
   MapingDF <- MapDataReactive$df %>%
               distinct(station_name, .keep_all = TRUE)
   SelectedMarkerOne$df <- filter(MapingDF, station_name %in% StationOneReactive$S)
-  SelectedMarkerTwo$df <- filter(MapingDF, station_name %in% input$StationTwoSelect)
+  SelectedMarkerTwo$df <- filter(MapingDF, station_name %in% StationTwoReactive$S)
   leafletProxy("LeafMap")%>%
   clearMarkers()
   NonSelectedMarkerUpdate(MapingDF)
@@ -351,6 +418,7 @@ observe({
 })
 
 
+#
 
 
 #Zooms in one level on map click
@@ -387,39 +455,39 @@ if(nrow(dfOut) - sum(is.na(dfOut)) == 0)
 {
   dfOut <- dfOut %>%
            slice(1)
-  dfOut[3] <- 1
+  suppressWarnings(dfOut[3] <- 1)
 }
-print(dfOut)
+#print(dfOut)
 
 dfOut <- xts(dfOut, order.by = as.Date(dfOut$collection_date))
 return(dfOut)
 }
 
 #Function for making title
-ChartTitleMaker <- function(df,Station,Parameter)
+ChartTitleMaker <- function(df,Parameter)
 {
   #Checks to see if there is unsufficent data
   if(nrow(df) < 2)
   {
-    paste(Station, ": ", "Insufficient Data", sep = "")
+    paste(df$station_name[1], ": ", "Insufficient Data", sep = "")
   }
   else
   {
-    paste(Station, ": ", Parameter, sep = "")
+    paste(df$station_name[1], ": ",Parameter, sep = "")
   }
 }
 
 #Function for making Chart
 ChartMaker <- function(df,Station,Parameter)
 {
+  GroupName <- GetGroup(MapDataReactive$df,Station)
+  
   ColorChoice<- ParamColors %>%
                  filter(ParameterList == Parameter)%>%
                  select(Colors)%>%
                  as.matrix()%>%
                  c()
   
-  GroupName <- GetGroup(MapDataReactive$df,Station)
-
   Unit <- GetUnit(Parameter,GroupName)
  # print(Unit)
 
@@ -459,11 +527,15 @@ TableMaker <- function(df,station)
 ChartOneData <- reactive({
   req(MapDataReactive$df)
   req(StationOneReactive$S)
-  req(input$StationOneSelect)
+  req(StationTwoReactive$S)
   req(input$ParameterOneSelect) 
+  req(input$GroupSelect)
   
+  validate(
+    need(input$ParameterOneSelect != "","Select a Parameter")
+        )
   df <- ChartDataMaker(MapDataReactive$df,StationOneReactive$S,input$ParameterOneSelect)
-  
+
   return(df)
 })
 
@@ -471,17 +543,19 @@ ChartOneData <- reactive({
 output$ChartOneTitle <- renderText({ 
   req(ChartOneData())
   req(input$ParameterOneSelect)
-  
-  ChartTitleMaker(ChartOneData(),StationOneReactive$S,input$ParameterOneSelect)
+  req(StationOneReactive$S)
+
+  ChartTitleMaker(ChartOneData(),input$ParameterOneSelect)
 })
+
 
 #Chart One Dygraph
   output$ChartOne <- renderDygraph({
-    req(input$StationOneSelect)
+    req(StationOneReactive$S)
     req(input$ParameterOneSelect)
-  ChartMaker(ChartOneData(),input$StationOneSelect,input$ParameterOneSelect)
+    ChartMaker(ChartOneData(),StationOneReactive$S,input$ParameterOneSelect)
 })
-  
+
   #Chart One Table
   output$ChartOneTable <- renderTable({
     req(StationOneReactive)
@@ -499,9 +573,10 @@ output$ChartOneTitle <- renderText({
   #Chart Two Data
   ChartTwoData <- reactive({
     req(MapDataReactive$df)
-    req(input$StationTwoSelect)
+    req(StationTwoReactive$S)
     req(input$ParameterTwoSelect) 
-    df <- ChartDataMaker(MapDataReactive$df,input$StationTwoSelect,input$ParameterTwoSelect)
+    req(input$GroupSelect)
+    df <- ChartDataMaker(MapDataReactive$df,StationTwoReactive$S,input$ParameterTwoSelect)
     return(df)
   })
   
@@ -509,21 +584,21 @@ output$ChartOneTitle <- renderText({
   output$ChartTwoTitle <- renderText({ 
     req(ChartTwoData())
     req(input$ParameterTwoSelect)
-    ChartTitleMaker(ChartTwoData(),input$StationTwoSelect,input$ParameterTwoSelect)
+    ChartTitleMaker(ChartTwoData(),input$ParameterTwoSelect)
   })
   
   #Chart Two Dygraph
   output$ChartTwo <- renderDygraph({
-    req(input$StationTwoSelect)
+    req(StationTwoReactive$S)
     req(input$ParameterTwoSelect)
-    ChartMaker(ChartTwoData(),input$StationTwoSelect,input$ParameterTwoSelect)
+    ChartMaker(ChartTwoData(),StationTwoReactive$S,input$ParameterTwoSelect)
   })
   
   #Chart Two Table
   output$ChartTwoTable <- renderTable({
-    req(input$StationTwoSelect)
+    req(StationTwoReactive$S)
     req(MapDataReactive)
-    head(TableMaker(MapDataReactive$df,input$StationTwoSelect))},
+    head(TableMaker(MapDataReactive$df,StationTwoReactive$S))},
     rownames = TRUE,
     width = "100%",
     striped = TRUE,
@@ -562,12 +637,12 @@ if(input$DownloadSelect == "Chart One Summary")
 if(input$DownloadSelect == "Chart Two")
 {
 
-  GroupName <- GetGroup(MapDataReactive$df,input$StationTwoSelect)
+  GroupName <- GetGroup(MapDataReactive$df,StationTwoReactive$S)
   
   Unit <- GetUnit(input$ParameterTwoSelect,GroupName)
   
   Data <- InputData %>%
-    filter(station_name == input$StationTwoSelect)%>%
+    filter(station_name == StationTwoReactive$S)%>%
     select(station_id,station_name,latitude,longitude,collection_date,input$ParameterTwoSelect)%>%
     mutate(Units = Unit)
 
@@ -575,7 +650,7 @@ if(input$DownloadSelect == "Chart Two")
   
   if(input$DownloadSelect == "Chart Two Summary")
   {
-    Data <- TableMaker(MapDataReactive$df,input$StationTwoSelect)
+    Data <- TableMaker(MapDataReactive$df,StationTwoReactive$S)
     Data <- data.frame(ParameterList,Data)
   }
   
