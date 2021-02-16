@@ -27,7 +27,7 @@ ui <- fluidPage(
   mainPanel(
             actionButton("Info","Info"),
             uiOutput("GroupText"),
-            tags$h3(uiOutput("GroupValidate")),
+            #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
             leafletOutput("LeafMap", height = 225, width = 650),
             tags$h3(uiOutput("StationOneValidate")),
@@ -137,10 +137,7 @@ GroupName <- df %>%
   as.matrix()%>%
   c()
 
-
   return(GroupName)
-
-  
 }
 
 #Get Unit 
@@ -267,32 +264,28 @@ output$GroupValidate <- renderText({
 output$StationOneValidate <- renderText({
   #req(input$StationOneSelect)
   validate(
-    need(input$StationOneSelect != "", "Select Station!")
+    need(input$StationOneSelect  != "", "Select a Station!")
    )
-  
-  validate(
-    need(input$ParameterOneSelect != "", "Select a Parameter!")
-  )
 }) 
  
 output$StationTwoValidate <- renderText({
   #req(input$StationTwoSelect)
   validate(
-    need(input$StationTwoSelect != "","Select Station Two!")
+    need(input$StationTwoSelect != "","Select a Station!")
   )
 }) 
  
-# output$ParameterOneValidate <- renderText({
-#  # req(input$ParameterOneSelect)
-#   validate(
-#     need(input$ParameterOneSelect != "","Select Parameter One!")
-#   )
-# }) 
+output$ParameterOneValidate <- renderText({
+ # req(input$ParameterOneSelect)
+  validate(
+    need(input$ParameterOneSelect != "","Select a Parameter!")
+  )
+})
  
 output$ParameterTwoValidate <- renderText({
  # req(input$ParameterTwoSelect)
   validate(
-    need(input$ParameterTwoSelect != "","Select Parameter Two!")
+    need(input$ParameterTwoSelect != "","Select a Parameter!")
   )
 }) 
  
@@ -301,8 +294,8 @@ output$ParameterTwoValidate <- renderText({
 #### GROUP TEXT #####
 output$GroupText <- renderUI({
   req(MapDataReactive$df)
-  req(StationOneReactive$S)
-  req(input$GroupSelect)
+ # req(StationOneReactive$S)
+#  req(input$GroupSelect)
 
 GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
 
@@ -350,13 +343,16 @@ output$LeafMap <- renderLeaflet({
   
  #Gets the last sample date of the station ! needs work
  LastSampled <- df %>%
-                arrange(desc(collection_date))%>% 
-                select(collection_date)%>%
-                slice(1L)
-                # mutate(Date = as.Date(substring(collection_date,1,10)))%>% 
-                # select(Date)%>%
-                # slice(1L)%>%
-                # as.character()
+                  select(collection_date)%>%
+                  slice(1L)%>%
+                  mutate(collection_date = substring(collection_date,1,10))
+   
+# print(LastSampled)
+ # %>% 
+ #                select(collection_date)%>%
+ #                slice(1L)%>%
+ #                mutate(collection_date = substring(collection_date,1,10))
+
  
  #Popup String
  PopupString <- paste("Group:", df$Group, "<br>",
@@ -373,7 +369,7 @@ output$LeafMap <- renderLeaflet({
 SelectedMarkerUpdate <- function(df,ColorCode)
 {
   suppressWarnings(leafletProxy("LeafMap")%>%
-  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, color = ColorCode, radius = ~ (MarkerSize), options = list(zIndex = 3), label = ~ paste(Group, ": ", station_name, sep = ""),
+  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, stroke = TRUE, color = ColorCode, fillColor = ~Color, fillOpacity = .75, radius = ~ (MarkerSize), options = list(zIndex = 3), label = ~ paste(Group, ": ", station_name, sep = ""),
                    layerId = df$station_name, group = ~Group, popup = PopupMaker(df)))
 }
 
@@ -381,7 +377,7 @@ SelectedMarkerUpdate <- function(df,ColorCode)
 NonSelectedMarkerUpdate <- function(df)
 {
   suppressWarnings(leafletProxy("LeafMap")%>%
-  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, color = ~Color, radius = ~ (MarkerSize), options = list(zIndex = 3), label = ~ paste(Group, ": ", station_name, sep = ""),
+  addCircleMarkers(data = df, lng = ~longitude, lat = ~latitude, stroke = FALSE, fillColor = ~Color, fillOpacity = .75, radius = ~ (MarkerSize), options = list(zIndex = 3), label = ~ paste(Group, ": ", station_name, sep = ""),
                    layerId = df$station_name, group = ~Group))
 }
 
@@ -406,8 +402,12 @@ updateSelectizeInput(session, "StationOneSelect", label = NULL, choices = unique
 #Oberves when any data is changed 
 observe({
   #Forgot that the map only needs a universe of stations - not samples. So filtering down to only distinct station_names 
-  MapingDF <- MapDataReactive$df %>%
-              distinct(station_name, .keep_all = TRUE)
+  #Also sorting descending by collection date because this eventually gets fed into the popup and needs the 'last sampled'
+  MapingDF <- MapDataReactive$df[ order(MapDataReactive$df$collection_date, decreasing = TRUE),]
+  
+  MapingDF <- MapingDF %>%
+    distinct(station_name, .keep_all = TRUE)
+  
   SelectedMarkerOne$df <- filter(MapingDF, station_name %in% StationOneReactive$S)
   SelectedMarkerTwo$df <- filter(MapingDF, station_name %in% StationTwoReactive$S)
   leafletProxy("LeafMap")%>%
@@ -525,15 +525,9 @@ TableMaker <- function(df,station)
 #### CHART 1 Calls #####
 #Chart One Data
 ChartOneData <- reactive({
-  req(MapDataReactive$df)
-  req(StationOneReactive$S)
-  req(StationTwoReactive$S)
-  req(input$ParameterOneSelect) 
-  req(input$GroupSelect)
+ req(StationOneReactive$S)
+ req(input$ParameterOneSelect) 
   
-  validate(
-    need(input$ParameterOneSelect != "","Select a Parameter")
-        )
   df <- ChartDataMaker(MapDataReactive$df,StationOneReactive$S,input$ParameterOneSelect)
 
   return(df)
@@ -572,10 +566,9 @@ output$ChartOneTitle <- renderText({
   #### CHART TWO CALLS #### 
   #Chart Two Data
   ChartTwoData <- reactive({
-    req(MapDataReactive$df)
     req(StationTwoReactive$S)
     req(input$ParameterTwoSelect) 
-    req(input$GroupSelect)
+ #   req(input$GroupSelect)
     df <- ChartDataMaker(MapDataReactive$df,StationTwoReactive$S,input$ParameterTwoSelect)
     return(df)
   })
