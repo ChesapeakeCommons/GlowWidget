@@ -68,7 +68,7 @@ server <- function(input, output, session) {
     
 #### DATA IMPORT AND VARIABLE DECLERATION #####
 
-suppressMessages(InputData <- read_csv("Data/Combined_Data10.csv"))
+suppressMessages(InputData <- read_csv("Data/Combined_Data11.csv"))
 
 suppressMessages(GroupData <- read_csv("Data/GroupData1.csv"))
 
@@ -102,11 +102,11 @@ DefaultStationTwo <- reactiveValues(S = as.character(InputData %>%
 ChartOneRender <- reactiveValues(N = as.numeric())
 
 #Selected Marker for map
-SelectedMarkerOne <- reactiveValues(df = data.frame())
+#SelectedMarkerOne <- reactiveValues(df = data.frame())
 
 #This needs a default set because it doesn't operate off a reactive like the first station
 
-SelectedMarkerTwo <- reactiveValues(S = isolate(DefaultStationTwo$S)) 
+#SelectedMarkerTwo <- reactiveValues(S = isolate(DefaultStationTwo$S)) 
 
 # Extra Info for Charting
 #ParameterList 
@@ -325,19 +325,15 @@ output$LeafMap <- renderLeaflet({
      addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = list(zIndex = 1), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
      addProviderTiles("Esri.WorldTopoMap", group = "Terrain")%>%
      addProviderTiles("GeoportailFrance.orthos", group = "Satellite")%>%
-    addSearchOSM(options = searchOptions(autoCollapse = TRUE, minLength = 2))%>%
+     addSearchOSM(options = searchOptions(autoCollapse = TRUE, minLength = 2))%>%
      addLayersControl(overlayGroups = c("Watersheds"),
                      baseGroups = c("Streets", "Terrain", "Satellite"),
-                     options = layersControlOptions(collapsed = FALSE,  position = 'bottomright'))%>%
-     setView(lng = -81.7, lat = 42.4, zoom = 6.25)
-  
+                     options = layersControlOptions(collapsed = FALSE,  position = 'bottomright'))#%>%
+    # setView(lng = -81.7, lat = 42.4, zoom = 6.25)
 })
- 
  #Constructs the popup for the leaflet map
  PopupMaker <- function(df)
  {
-   req(SelectedMarkerOne$df)
-   req(SelectedMarkerTwo$df)
    req(StationOneReactive$S)
    req(input$StationTwoSelect)
   
@@ -346,13 +342,6 @@ output$LeafMap <- renderLeaflet({
                   select(collection_date)%>%
                   slice(1L)%>%
                   mutate(collection_date = substring(collection_date,1,10))
-   
-# print(LastSampled)
- # %>% 
- #                select(collection_date)%>%
- #                slice(1L)%>%
- #                mutate(collection_date = substring(collection_date,1,10))
-
  
  #Popup String
  PopupString <- paste("Group:", df$Group, "<br>",
@@ -381,14 +370,11 @@ NonSelectedMarkerUpdate <- function(df)
                    layerId = df$station_name, group = ~Group))
 }
 
-
-
 #MapMarker Click Station One Selection
   #Sets the StationOneReactive to equal the  selected station
   #Updates the StationeOneSelect Filter as well
 observeEvent(input$LeafMap_marker_click, 
              {
-               
 StationOneReactive$S <- MapDataReactive$df %>% 
          filter(latitude == input$LeafMap_marker_click$lat, longitude == input$LeafMap_marker_click$lng) %>%
          select(station_name)%>%
@@ -397,7 +383,6 @@ StationOneReactive$S <- MapDataReactive$df %>%
 
 updateSelectizeInput(session, "StationOneSelect", label = NULL, choices = unique(MapDataReactive$df$station_name), selected = StationOneReactive$S)
 })
-
 
 #Oberves when any data is changed 
 observe({
@@ -408,33 +393,39 @@ observe({
   MapingDF <- MapingDF %>%
     distinct(station_name, .keep_all = TRUE)
   
-  SelectedMarkerOne$df <- filter(MapingDF, station_name %in% StationOneReactive$S)
-  SelectedMarkerTwo$df <- filter(MapingDF, station_name %in% StationTwoReactive$S)
+  SelectedMarkerOne <- filter(MapingDF, station_name %in% StationOneReactive$S)
+  SelectedMarkerTwo <- filter(MapingDF, station_name %in% StationTwoReactive$S)
   leafletProxy("LeafMap")%>%
   clearMarkers()
   NonSelectedMarkerUpdate(MapingDF)
-  SelectedMarkerUpdate(SelectedMarkerOne$df,"#fc090a")
-  SelectedMarkerUpdate(SelectedMarkerTwo$df,"#800080")
+  SelectedMarkerUpdate(SelectedMarkerOne,"#fc090a")
+  SelectedMarkerUpdate(SelectedMarkerTwo,"#800080")
 })
 
+observeEvent(StationOneReactive$S,{
+    req(StationOneReactive$S)
+    
+    SelectedMarkerOne <- filter(MapDataReactive$df %>% distinct(station_name, .keep_all = TRUE), station_name %in% StationOneReactive$S)
+    leafletProxy("LeafMap")%>%
+    setView(lng = SelectedMarkerOne$longitude[1], lat = SelectedMarkerOne$latitude[1], zoom = 8.5)
 
-#
+  })
 
 
 #Zooms in one level on map click
 #Shifts to station when station is clicked 
-observeEvent(input$LeafMap_click, {
-  if(input$LeafMap_click$lng %in% as.vector(MapDataReactive$df$longitude))
-  {
-    leafletProxy("LeafMap")%>%
-    setView(lng = input$LeafMap_click$lng, lat = input$LeafMap_click$lat, zoom = input$LeafMap_zoom) 
-  }
-  else
-  {
-  leafletProxy("LeafMap")%>%
-  setView(lng = input$LeafMap_click$lng, lat = input$LeafMap_click$lat, zoom = input$LeafMap_zoom + 1)
-  }
-})
+# observeEvent(input$LeafMap_click, {
+#   if(input$LeafMap_click$lng %in% as.vector(MapDataReactive$df$longitude))
+#   {
+#     leafletProxy("LeafMap")%>%
+#     setView(lng = input$LeafMap_click$lng, lat = input$LeafMap_click$lat, zoom = input$LeafMap_zoom) 
+#   }
+#   else
+#   {
+#   leafletProxy("LeafMap")%>%
+#   setView(lng = input$LeafMap_click$lng, lat = input$LeafMap_click$lat, zoom = input$LeafMap_zoom + 1)
+#   }
+# })
 
 #### END MAP #####
     
@@ -491,7 +482,7 @@ ChartMaker <- function(df,Station,Parameter)
   Unit <- GetUnit(Parameter,GroupName)
  # print(Unit)
 
-  return(dygraph(df) %>%
+  return(dygraph(df, group = "x") %>%
       dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
       dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = TRUE, rightGap = 10, colors = ColorChoice) %>%
       dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
