@@ -134,7 +134,7 @@ CombinedData <- bind_rows(Rocky_Cleaned,
 CombinedData <- bind_rows(CombinedData, SUNY_Cleaned)
 
 #Creating Marker Size column off of sample station count - custom function dictated by sizing of icons
-CombinedData$MarkerSize <- (sqrt(CombinedData$StationSampleCount) * .3) + 5
+CombinedData$MarkerSize <- (sqrt(CombinedData$StationSampleCount) * .3) + 4.5
 
 #Pulling out the stations with below 5 sample count
 CombinedData <- CombinedData %>% 
@@ -264,11 +264,21 @@ StationHucs <- Hucs %>%
 
 #Now adding in the Hucs so they can appear in the popups 
 CombinedDataCleanedHucs <- inner_join(StationHucs,CombinedDataCleaned) %>% distinct_all()
+                           
 
-  
+
+#Different Numbers (5708 Combined_Data9 vs 5655 Combined Data Cleaned Hucs) after merge despite the row count being identical for the stations above.
+#One Station, ADW05 is getting dropped for some weird reason can't figure out why, but it accounts for the 53 row difference. adding here. 
+
+CombinedDataCleaned <-  CombinedDataCleaned %>%
+                        mutate(NAME = "Detriot")%>%
+                        filter(station_id == "ADW05")%>%
+                        bind_rows(CombinedDataCleanedHucs)
+
+                          
   
   ####### FINAL EXPORT LEAVE THIS UNCOMMENTED UNLESS SAVING OUT ####### 
-  write.csv(CombinedDataCleanedHucs, "Data/Combined_Data9.csv", row.names = FALSE)
+  write.csv(CombinedDataCleaned, "Data/Combined_Data11.csv", row.names = FALSE)
   
 
 

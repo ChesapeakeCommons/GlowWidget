@@ -52,11 +52,12 @@ ui <- fluidPage(
       tags$style(type="text/css", ".well { max-width: 200px; }")
     ),
                uiOutput("GroupFilter"),
+               uiOutput("SampleCountFilter"),
                uiOutput("StationOneFilter"),
                uiOutput("ParameterOneFilter"),
                uiOutput("StationTwoFilter"),
                uiOutput("ParameterTwoFilter"),
-               selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+               selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
                downloadButton('DataDownload', 'Download')),
                
 
@@ -197,19 +198,70 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
  selectizeInput("StationTwoSelect","Select Station Two", choices = InputData$station_name, selected = DefaultStationTwo$S, multiple = FALSE,  options = list(placeholder = 'Select a Station'))
  })
  
- #Paremeter One Filter 
+ #Parameter One Filter 
  output$ParameterTwoFilter <- renderUI({
    #ParameterSelect 
    selectizeInput("ParameterTwoSelect","Select Parameter Two", choices = ParameterList, multiple = FALSE)
  })
  
- #ObserveEvent altering MapDataReactive$df to display on the map
- #Also updates options for the first station select 
- observeEvent(input$GroupSelect, {
+ output$SampleCountFilter <- renderUI({
+  #3print(MapDataReactive$df)
    
-   #print(ifelse(input$GroupSelect == "NULL","Null","NotNull"))
-
-   #Map Data filtering 
+  Min <- InputData %>%
+          select(StationSampleCount)%>%
+          as.tibble()%>%
+          arrange(StationSampleCount)%>%
+          slice_head()%>%
+          pull()
+  
+  Max <- InputData %>%
+         select(StationSampleCount)%>%
+         as.tibble()%>%
+         arrange(StationSampleCount)%>%
+         slice_tail()%>%
+         pull()
+  
+   sliderInput("SampleCountSelect","Filter by Sample Count", min = Min, max = Max, value = c(Min,Max), dragRange = TRUE)
+   
+ })
+ 
+ # observeEvent(input$SampleCountSelect,{
+ #  req(input$GroupSelect)
+ #  print(input$SampleCountSelect[1])
+ #  print(input$SampleCountSelect[2])
+ #  
+ #  
+ #  MapDataReactive$df <- MapDataReactive$df %>%
+ #                        filter(StationSampleCount >= input$SampleCountSelect[1],
+ #                               StationSampleCount <= input$SampleCountSelect[2])%>%
+ #                               filter(Group %in% input$GroupSelect)
+ # 
+ #  #Default Selection for a station is the first and second most sampled stations in the group list
+ #  Choices <- MapDataReactive$df %>%
+ #    arrange(desc(StationSampleCount))%>%
+ #    select(station_name)%>%
+ #    unique()
+ # 
+ #  DefaultStationOne$S <- Choices %>%
+ #    slice(1L)%>%
+ #    as.character()
+ # 
+ #  DefaultStationTwo$S <- Choices %>%
+ #    slice(2L)%>%
+ #    as.character()
+ # 
+ #  StationOneReactive$S <- DefaultStationOne$S
+ #  StationTwoReactive$S <- DefaultStationTwo$S
+ # 
+ #  #Station One Select
+ #  updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
+ #  updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
+ # })
+ # 
+ #ObserveEvent altering MapDataReactive$df to display on the map
+ #Also updates options for the first station select
+ observeEvent(input$GroupSelect, {
+   #Map Data filtering
    if("All Champions" %in% input$GroupSelect)
    {
      MapDataReactive$df <- InputData
@@ -219,37 +271,61 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
     # print(input$GroupSelect)
      MapDataReactive$df <- filter(InputData, Group %in% input$GroupSelect)
    }
-   
+
    #Default Selection for a station is the first and second most sampled stations in the group list
    Choices <- MapDataReactive$df %>%
               arrange(desc(StationSampleCount))%>%
               select(station_name)%>%
               unique()
-   
+
    DefaultStationOne$S <- Choices %>%
                          slice(1L)%>%
                          as.character()
-   
+
    DefaultStationTwo$S <- Choices %>%
                          slice(2L)%>%
                          as.character()
-   
+
    StationOneReactive$S <- DefaultStationOne$S
    StationTwoReactive$S <- DefaultStationTwo$S
-   
-   #Station One Select 
+
+   #Station One Select
    updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
    updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
  })
  
  #Turning the input into a reactive value so we can change it based on mapmarker clicks
  observeEvent(input$StationOneSelect,{
+   req(MapDataReactive$df)
    StationOneReactive$S <- as.character(input$StationOneSelect)
+   
+  ParameterOptions <- MapDataReactive$df %>%
+            filter(station_name == input$StationOneSelect)%>% 
+            select(collection_date:Temperature)%>%
+            select(-c(collection_date))%>% 
+            replace(is.na(.), 0)%>%
+            summarise_all(funs(sum))
+  
+  ParameterOptions <- as.vector(rownames(data.frame(which(colSums(ParameterOptions) != 0))))
+  
+   updateSelectizeInput(session, "ParameterOneSelect", choices = ParameterOptions)
+   
  })
  
  #Turning Station Two input to a reactive because it helps with rerendering errors 
  observeEvent(input$StationTwoSelect,{
    StationTwoReactive$S <- as.character(input$StationTwoSelect)
+   
+   ParameterOptions <- MapDataReactive$df %>%
+     filter(station_name == input$StationTwoSelect)%>% 
+     select(collection_date:Temperature)%>%
+     select(-c(collection_date))%>% 
+     replace(is.na(.), 0)%>%
+     summarise_all(funs(sum))
+   
+   ParameterOptions <- as.vector(rownames(data.frame(which(colSums(ParameterOptions) != 0))))
+   
+   updateSelectizeInput(session, "ParameterTwoSelect", choices = ParameterOptions)
  })
 #### END FILTERS #####
  
@@ -262,7 +338,6 @@ output$GroupValidate <- renderText({
 })
  
 output$StationOneValidate <- renderText({
-  #req(input$StationOneSelect)
   validate(
     need(input$StationOneSelect  != "", "Select a Station!")
    )
@@ -494,16 +569,17 @@ ChartMaker <- function(df,Station,Parameter)
 # function for generating data table
 TableMaker <- function(df,station)
 {
+  
   df <- MapDataReactive$df %>%
     filter(station_name == station)%>%
     select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature))
   
   Mean <- sapply(df, mean, na.rm=TRUE)
   Median <- sapply(df, median, na.rm=TRUE)
-  Minimum <- sapply(df, min, na.rm=TRUE)
-  Max <- sapply(df, max, na.rm=TRUE)
+  suppressWarnings(Minimum <- sapply(df, min, na.rm=TRUE))
+  suppressWarnings(Max <- sapply(df, max, na.rm=TRUE))
   `Standard Deviation` <- sapply(df, sd, na.rm = TRUE)
-  
+
   #Binding and rounding to 3 digits
   df <- round(cbind(Mean,Median,Minimum,Max,`Standard Deviation`),3)
   
@@ -511,7 +587,9 @@ TableMaker <- function(df,station)
   is.na(df) <- sapply(df, is.infinite)
   # Turning NAs to -
   df[is.na(df)] = "-"
+  
   return(df)
+  
 }
 #### CHART 1 Calls #####
 #Chart One Data
