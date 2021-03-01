@@ -1,0 +1,86 @@
+@import url("https://fonts.googleapis.com/css2?family=Josefin+Sans&display=swap");
+
+body{
+  background-color: #555555;
+  font-family: 'Josefin Sans',sans-serif !important;
+}
+
+.container-fluid{
+  padding: 0 0 0 0;
+}
+
+#header {
+  width: 100%;
+  height: 40px;
+  
+  background-color: #131245;
+  
+  border:1px solid red;
+  margin: 0 auto;
+    display: flex;
+   flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content:  space-between;
+
+}
+#header-title-image {
+  
+/*  float: left;
+  */
+  border: 1px solid green;
+  width: 400px;
+  height: 27px;
+  
+  background-image: url('./images/cleveland-water-alliance_title_001.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+  align-self: flex-start;
+  
+}
+#header-info-button {
+  /*
+  float: right;
+  */
+  border: 1px solid green;
+  width: 100px;
+  align-self: flex-end;
+
+  
+}
+
+/*START - mainPanel_A
+mainPanel_A is the upper most panel below the header
+it contains group selection, download option, and description (et al).
+*/
+
+#mainPanel_A{
+  border: 1px solid red;
+    justify-content:  space-between;
+  display :flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  
+}
+.A_subPanel{
+  border: 1px solid green;
+  
+  flex-grow: 1;
+  width: 200px;
+}
+.addFlex {
+  display: flex; 
+  
+  flex-direction: row;
+  flex-wrap: nowrap;
+   justify-content:  space-between;
+}
+
+.B_subPanel{
+  border: 1px solid cyan;
+  float: left;
+  display: block;
+  width: 50%;
+
+}

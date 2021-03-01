@@ -24,41 +24,77 @@ options(shiny.reactlog=TRUE)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  mainPanel(
-            actionButton("Info","Info"),
-            uiOutput("GroupText"),
+  theme = "styler.css",
+  tags$style(type="text/css",
+                   ".shiny-output-error { visibility: hidden; }",
+                   ".shiny-output-error:before { visibility: hidden; }"
+  ),
+                
+  shinyjs::useShinyjs(),
+  
+  div(id = "header",
+      div(id = "header-title-image"),
+      div(id = "header-info-button",
+        actionButton("Info","Info")
+      )
+  ),              
+                
+  div(id = "mainPanel_A",
+     
+  #  tags$head(
+     # tags$style(type="text/css", "select { max-width: 160px; }"),
+    #  tags$style(type="text/css", ".span4 { max-width: 200px; }"),
+    #  tags$style(type="text/css", ".well { max-width: 200px; }")
+  #  ),
+    div(class = "A_subPanel",
+      uiOutput("GroupFilter"),
+      selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+      downloadButton('DataDownload', 'Download'),
+      uiOutput("SampleCountFilter"),
+    ),
+    div(class = "A_subPanel addFlex",
+        uiOutput("GroupText")
+    )
+   
+  ),
+  
+  
+  div(id = "mainPanel_A",
+            
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
-            leafletOutput("LeafMap", height = 225, width = 650),
-            tags$h3(uiOutput("StationOneValidate")),
-            tags$h3(uiOutput("ParameterOneValidate")),
-            tags$h3(textOutput("ChartOneTitle")),
-            tabsetPanel(
-            tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = 700)),
-            tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
-            ),
-            tags$h3(uiOutput("StationTwoValidate")),
-            tags$h3(uiOutput("ParameterTwoValidate")),
-            tags$h3(textOutput("ChartTwoTitle")),
-            tabsetPanel(
-              tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = 700)),
-              tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
-              ),
-           ),
-  sidebarPanel(
-    tags$head(
-      tags$style(type="text/css", "select { max-width: 160px; }"),
-      tags$style(type="text/css", ".span4 { max-width: 200px; }"),
-      tags$style(type="text/css", ".well { max-width: 200px; }")
+            leafletOutput("LeafMap", height = 400, width = '100%')
+  ),
+           
+  
+  div(
+    
+    uiOutput("StationOneFilter"),
+    uiOutput("ParameterOneFilter"),
+    
+    
+    tags$h3(uiOutput("StationOneValidate")),
+    tags$h3(uiOutput("ParameterOneValidate")),
+    tags$h3(textOutput("ChartOneTitle")),
+    tabsetPanel(
+      tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = 700)),
+      tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
     ),
-               uiOutput("GroupFilter"),
-               uiOutput("SampleCountFilter"),
-               uiOutput("StationOneFilter"),
-               uiOutput("ParameterOneFilter"),
-               uiOutput("StationTwoFilter"),
-               uiOutput("ParameterTwoFilter"),
-               selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
-               downloadButton('DataDownload', 'Download')),
+    
+    
+    uiOutput("StationTwoFilter"),
+    uiOutput("ParameterTwoFilter"),
+    
+    
+    tags$h3(uiOutput("StationTwoValidate")),
+    tags$h3(uiOutput("ParameterTwoValidate")),
+    tags$h3(textOutput("ChartTwoTitle")),
+    tabsetPanel(
+      tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = 700)),
+      tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
+    ),
+  )
+ 
                
 
 )
@@ -368,27 +404,29 @@ output$ParameterTwoValidate <- renderText({
     
 #### GROUP TEXT #####
 output$GroupText <- renderUI({
-  req(MapDataReactive$df)
- # req(StationOneReactive$S)
-#  req(input$GroupSelect)
-
-GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
-
-GroupFrame <- filter(GroupData, Group == GroupName)
-           
-tagList(
-paste0(GroupFrame$Group),
-HTML("<br/>"),
-paste0("Watershed(s): ", GroupFrame$HucList),
-HTML("<br/>"),
-paste0("# of Samples: ", GroupFrame$TotalSamples),
-HTML("<br/>"),
-paste0("Years Sampling: ", GroupFrame$YearRange),
-HTML("<br/>"),
-paste0("Website: ", GroupFrame$SiteLink),
-HTML("<br/>"),
-paste0(GroupFrame$Description),
-)
+    req(MapDataReactive$df)
+   # req(StationOneReactive$S)
+  #  req(input$GroupSelect)
+  
+    GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
+    
+    GroupFrame <- filter(GroupData, Group == GroupName)
+               
+    tagList(
+    paste0(GroupFrame$Group),
+    HTML("<div class='B_subPanel' style='width:30%;'>"),
+      paste0("Watershed(s): ", GroupFrame$HucList),
+      HTML("<br/>"),
+      paste0("# of Samples: ", GroupFrame$TotalSamples),
+      HTML("<br/>"),
+      paste0("Years Sampling: ", GroupFrame$YearRange),
+      HTML("<br/>"),
+      paste0("Website: ", GroupFrame$SiteLink),
+    HTML("</div>
+         <div class='B_subPanel' style='width:70%;'>"),
+      paste0(GroupFrame$Description),
+    HTML("</div>")
+  )
 })
  #### END  GROUP TEXT  #####
  
