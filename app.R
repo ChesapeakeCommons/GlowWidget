@@ -39,27 +39,27 @@ ui <- fluidPage(
       )
   ),              
                 
-  div(id = "mainPanel_A",
+  div(class = "mainPanel_A",
      
   #  tags$head(
      # tags$style(type="text/css", "select { max-width: 160px; }"),
     #  tags$style(type="text/css", ".span4 { max-width: 200px; }"),
     #  tags$style(type="text/css", ".well { max-width: 200px; }")
   #  ),
-    div(class = "A_subPanel",
+    div(class = "A_subPanel", style="width:39.5%;",
       uiOutput("GroupFilter"),
       selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
       downloadButton('DataDownload', 'Download'),
       uiOutput("SampleCountFilter"),
     ),
-    div(class = "A_subPanel addFlex",
+    div(class = "A_subPanel",style="width:59.5%;",
         uiOutput("GroupText")
     )
    
   ),
   
   
-  div(id = "mainPanel_A",
+  div(class = "mainPanel_A",
             
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
@@ -67,32 +67,32 @@ ui <- fluidPage(
   ),
            
   
-  div(
-    
-    uiOutput("StationOneFilter"),
-    uiOutput("ParameterOneFilter"),
-    
-    
-    tags$h3(uiOutput("StationOneValidate")),
-    tags$h3(uiOutput("ParameterOneValidate")),
-    tags$h3(textOutput("ChartOneTitle")),
-    tabsetPanel(
-      tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = 700)),
-      tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
+  div(class = "mainPanel_A",
+    div(class = "A_subPanel", style="width: 50%;",
+      uiOutput("StationOneFilter"),
+      uiOutput("ParameterOneFilter"),
+      
+      tags$h3(uiOutput("StationOneValidate")),
+      tags$h3(uiOutput("ParameterOneValidate")),
+      tags$h3(textOutput("ChartOneTitle")),
+      tabsetPanel(
+        tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = '100%')),
+        tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
+      )
     ),
-    
-    
-    uiOutput("StationTwoFilter"),
-    uiOutput("ParameterTwoFilter"),
-    
-    
-    tags$h3(uiOutput("StationTwoValidate")),
-    tags$h3(uiOutput("ParameterTwoValidate")),
-    tags$h3(textOutput("ChartTwoTitle")),
-    tabsetPanel(
-      tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = 700)),
-      tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
-    ),
+    div(class = "A_subPanel", style="width: 50%;",
+      uiOutput("StationTwoFilter"),
+      uiOutput("ParameterTwoFilter"),
+      
+      
+      tags$h3(uiOutput("StationTwoValidate")),
+      tags$h3(uiOutput("ParameterTwoValidate")),
+      tags$h3(textOutput("ChartTwoTitle")),
+      tabsetPanel(
+        tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = '100%')),
+        tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
+      )
+    )
   )
  
                
