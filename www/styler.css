@@ -9,9 +9,10 @@ body{
   padding: 0 0 0 0;
 }
 
+/*START HEADER STYLES*/
 #header {
   width: 100%;
-  height: 40px;
+  height: 50px;
   
   background-color: #131245;
   
@@ -21,6 +22,8 @@ body{
    flex-direction: row;
   flex-wrap: nowrap;
   justify-content:  space-between;
+  
+  padding: 10px 10px 10px 10px;
 
 }
 #header-title-image {
@@ -40,32 +43,37 @@ body{
   
 }
 #header-info-button {
-  /*
-  float: right;
-  */
+
   border: 1px solid green;
   width: 100px;
   align-self: flex-end;
 
   
 }
+/*END HEADER STYLES*/
 
-/*START - mainPanel_A
-mainPanel_A is the upper most panel below the header
-it contains group selection, download option, and description (et al).
-*/
+
+/*START UTILITY STYLES*/
 
 .mainPanel_A{
-  border: 1px solid red;
+  border: 0px solid red;
     justify-content:  space-between;
   display :flex;
   flex-direction: row;
   flex-wrap: wrap;
   
 }
+.leafPanel, #LeafMap {
+  height: calc(100vh - 60vh);
+}
+
+
 .A_subPanel{
-  border: 1px solid green;
+  border: 0px solid green;
   flex-grow: 1;
+   padding: 10px 10px 10px 10px;
+    width: calc(50% - 22px);
+
 }
 .addFlex {
   display: flex; 
@@ -79,10 +87,16 @@ it contains group selection, download option, and description (et al).
   border: 1px solid cyan;
   float: left;
   display: block;
+ 
   width: 50%;
+  
+ 
 
 }
 
+/*END UTILITY STYLES*/
+
+/*START CHART STYLES*/
 #StationOneFilter{
   width: 50%;
   float: left;
@@ -103,3 +117,62 @@ it contains group selection, download option, and description (et al).
   float: left;
   display: block; 
 }
+/*END CHART STYLES*/
+
+/*START SHINY OVERRIDES*/
+
+.shiny-input-container{
+  border: 1px solid pink;
+  display: block;
+  float: left;
+  width: calc(50%-2px);
+  min-width: 300px;
+  
+}
+
+.shiny-input-container > div,
+.shiny-input-container > label 
+{
+    display: table-cell;
+    border: 1px solid purple;
+    vertical-align: top;
+    font-size: 12px;
+   
+}
+
+.shiny-input-container > label {
+  padding-top: 8px; 
+  padding-right: 5px;
+   min-width: 130px;
+    text-align: right;
+}
+
+#StationOneFilter > label
+{
+  width: 100px !important ;
+  min-width: 100px !important;
+}
+
+
+
+.control-lable{
+  display:block;
+  float:left;
+  /* display: table-cell; */
+}
+
+.selectize-control{
+  display:inline-block;
+  float:left;
+}
+
+.selectize-input{
+  width: 200px;
+   display:block;
+  float:left;
+}
+
+
+/*END SHINY OVERRIDES*/
+
+

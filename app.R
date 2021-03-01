@@ -39,7 +39,7 @@ ui <- fluidPage(
       )
   ),              
                 
-  div(class = "mainPanel_A",
+  div(class = "mainPanel_A", style='border-bottom:1px solid #cccccc;',
      
   #  tags$head(
      # tags$style(type="text/css", "select { max-width: 160px; }"),
@@ -59,15 +59,15 @@ ui <- fluidPage(
   ),
   
   
-  div(class = "mainPanel_A",
+  div(class = "mainPanel_A leafPanel",
             
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
-            leafletOutput("LeafMap", height = 400, width = '100%')
+            leafletOutput("LeafMap", height = 'calc(100vh - 60vh)', width = '100%')
   ),
            
   
-  div(class = "mainPanel_A",
+  div(class = "mainPanel_A", style='border-top:1px solid #cccccc;',
     div(class = "A_subPanel", style="width: 50%;",
       uiOutput("StationOneFilter"),
       uiOutput("ParameterOneFilter"),
