@@ -30,9 +30,10 @@ body{
   
 /*  float: left;
   */
-  border: 1px solid green;
+  border: 0px solid green;
   width: 400px;
   height: 27px;
+  padding: 0 5px 0 5px;
   
   background-image: url('./images/cleveland-water-alliance_title_001.png');
   background-size: cover;
@@ -69,7 +70,7 @@ body{
 
 
 .A_subPanel{
-  border: 0px solid green;
+  border: 1px solid green;
   flex-grow: 1;
    padding: 10px 10px 10px 10px;
     width: calc(50% - 22px);
@@ -98,14 +99,17 @@ body{
 
 /*START CHART STYLES*/
 #StationOneFilter{
-  width: 50%;
+ /* width: 50%;
   float: left;
   display: block;
+  */
 }
 #ParameterOneFilter{
+/*
   width: 50%;
   float: left;
   display: block; 
+*/
 }
 #StationTwoFilter{
   width: 50%;
@@ -125,9 +129,8 @@ body{
   border: 1px solid pink;
   display: block;
   float: left;
-  width: calc(50%-2px);
-  min-width: 300px;
-  
+  width: 50%;
+ 
 }
 
 .shiny-input-container > div,
@@ -143,14 +146,16 @@ body{
 .shiny-input-container > label {
   padding-top: 8px; 
   padding-right: 5px;
-   min-width: 130px;
+ /*  min-width: 130px;*/
     text-align: right;
 }
 
+
 #StationOneFilter > label
 {
+   border: 1px solid orange;
   width: 100px !important ;
-  min-width: 100px !important;
+  max-width: 100px !important;
 }
 
 

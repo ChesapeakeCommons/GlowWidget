@@ -46,14 +46,17 @@ ui <- fluidPage(
     #  tags$style(type="text/css", ".span4 { max-width: 200px; }"),
     #  tags$style(type="text/css", ".well { max-width: 200px; }")
   #  ),
-    div(class = "A_subPanel", style="width:39.5%;",
+    div(class = "A_subPanel", style="width:30%;",
       uiOutput("GroupFilter"),
-      selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
-      downloadButton('DataDownload', 'Download'),
+
       uiOutput("SampleCountFilter"),
     ),
-    div(class = "A_subPanel",style="width:59.5%;",
+    div(class = "A_subPanel",style="width:54%;",
         uiOutput("GroupText")
+    ),
+  div(class = "A_subPanel", style="width: 13%; ",
+      selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+      downloadButton('DataDownload', 'Download'),
     )
    
   ),
@@ -401,31 +404,48 @@ output$ParameterTwoValidate <- renderText({
 }) 
  
 ######## END VALIDATE SECTION ########## 
+
     
 #### GROUP TEXT #####
 output$GroupText <- renderUI({
     req(MapDataReactive$df)
    # req(StationOneReactive$S)
   #  req(input$GroupSelect)
-  
-    GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
-    
+    tagList(
+      HTML("<div style='display:none;'>"),
+      GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S),
+      HTML("/div>")
+    )
     GroupFrame <- filter(GroupData, Group == GroupName)
                
     tagList(
+    
     paste0(GroupFrame$Group),
+    
     HTML("<div class='B_subPanel' style='width:30%;'>"),
-      paste0("Watershed(s): ", GroupFrame$HucList),
-      HTML("<br/>"),
-      paste0("# of Samples: ", GroupFrame$TotalSamples),
-      HTML("<br/>"),
-      paste0("Years Sampling: ", GroupFrame$YearRange),
-      HTML("<br/>"),
-      paste0("Website: ", GroupFrame$SiteLink),
+        HTML("<div>"),
+        
+        HTML("</div>
+             <div>"),
+        paste0("Watershed(s): ", GroupFrame$HucList),
+        HTML("</div>
+             <div>"),
+        paste0("# of Samples: ", GroupFrame$TotalSamples),
+        HTML("</div>
+             <div>"),
+        paste0("Years Sampling: ", GroupFrame$YearRange),
+        HTML("</div>
+             <div>"),
+        paste0("Website: ", GroupFrame$SiteLink),
     HTML("</div>
-         <div class='B_subPanel' style='width:70%;'>"),
-      paste0(GroupFrame$Description),
-    HTML("</div>")
+        </div>
+        <div class='B_subPanel' style='width:70%;'>
+            <div>"),
+      HTML("  </div>
+            <div>"),
+              paste0(GroupFrame$Description),
+      HTML("</div>
+         </div>")
   )
 })
  #### END  GROUP TEXT  #####
