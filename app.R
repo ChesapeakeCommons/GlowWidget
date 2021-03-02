@@ -411,20 +411,22 @@ output$GroupText <- renderUI({
     req(MapDataReactive$df)
    # req(StationOneReactive$S)
   #  req(input$GroupSelect)
-    tagList(
-      HTML("<div style='display:none;'>"),
-      GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S),
-      HTML("/div>")
-    )
+  
+#    tagList(
+#      HTML("<div style='display:none;'>"),
+      GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
+#     
+#    )
+    
     GroupFrame <- filter(GroupData, Group == GroupName)
                
     tagList(
-    
-    paste0(GroupFrame$Group),
-    
+  #  HTML("<div style='display:block; background-color: red;'>"),
+     
+  #  HTML("/div>"),
     HTML("<div class='B_subPanel' style='width:30%;'>"),
         HTML("<div>"),
-        
+        paste0(GroupName),
         HTML("</div>
              <div>"),
         paste0("Watershed(s): ", GroupFrame$HucList),
@@ -455,7 +457,7 @@ output$GroupText <- renderUI({
 output$LeafMap <- renderLeaflet({
      leaflet("LeafMap")%>%
      addProviderTiles("CartoDB.VoyagerLabelsUnder", group = "Streets")%>%
-     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = list(zIndex = 1), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
+     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = list(zIndex = 0), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
      addProviderTiles("Esri.WorldTopoMap", group = "Terrain")%>%
      addProviderTiles("GeoportailFrance.orthos", group = "Satellite")%>%
      addSearchOSM(options = searchOptions(autoCollapse = TRUE, minLength = 2))%>%
