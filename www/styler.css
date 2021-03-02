@@ -99,17 +99,17 @@ body{
 
 /*START CHART STYLES*/
 #StationOneFilter{
- /* width: 50%;
+  width: 50%;
   float: left;
   display: block;
-  */
+  
 }
 #ParameterOneFilter{
-/*
+
   width: 50%;
   float: left;
   display: block; 
-*/
+
 }
 #StationTwoFilter{
   width: 50%;
