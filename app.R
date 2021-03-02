@@ -456,8 +456,9 @@ output$GroupText <- renderUI({
 #Map Decleration
 output$LeafMap <- renderLeaflet({
      leaflet("LeafMap")%>%
+     addMapPane("polygons", zIndex = 210)%>%
      addProviderTiles("CartoDB.VoyagerLabelsUnder", group = "Streets")%>%
-     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = list(zIndex = 0), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
+     addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = pathOptions(pane = "polygons"), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
      addProviderTiles("Esri.WorldTopoMap", group = "Terrain")%>%
      addProviderTiles("GeoportailFrance.orthos", group = "Satellite")%>%
      addSearchOSM(options = searchOptions(autoCollapse = TRUE, minLength = 2))%>%
