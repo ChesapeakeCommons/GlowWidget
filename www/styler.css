@@ -88,7 +88,7 @@ body{
   border: 1px solid cyan;
   float: left;
   display: block;
- 
+  font-size: 12px;
   width: 50%;
   
  
@@ -98,6 +98,32 @@ body{
 /*END UTILITY STYLES*/
 
 /*START CHART STYLES*/
+
+.control-label{
+ 
+  float:left;
+  min-width: 100px;
+  white-space:nowrap;
+    padding-top: 8px; 
+  padding-right: 5px;
+ /*  min-width: 130px;*/
+    text-align: right;
+  /* display: table-cell; */
+}
+
+.selectize-control{
+  display:inline-block;
+  float:left;
+  margin-bottom: 4px;
+}
+
+.selectize-input{
+  width: 200px;
+   display:block;
+  float:left;
+}
+
+
 #StationOneFilter{
   width: 50%;
   float: left;
@@ -125,12 +151,17 @@ body{
 
 /*START SHINY OVERRIDES*/
 
+.form-group{
+  margin-bottom: 0px !important;
+}
+
 .shiny-input-container{
   border: 1px solid pink;
   display: block;
   float: left;
-  width: 50%;
- 
+  width: unset ;
+  width: 100% !important;
+  /*min-width: 330px;*/
 }
 
 .shiny-input-container > div,
@@ -144,38 +175,67 @@ body{
 }
 
 .shiny-input-container > label {
-  padding-top: 8px; 
-  padding-right: 5px;
- /*  min-width: 130px;*/
-    text-align: right;
+ display:block;
+}
+
+#GroupFilter > .shiny-input-container > div > .selectize-control > .selectize-input{
+  width: calc(100% - 0px) !important;
+}
+#GroupFilter > .shiny-input-container{
+  width : 100% !important;
+  display: inline-block !important;
+  border: 1px solid magenta !important;
+}
+#GroupFilter > .shiny-input-container > div{
+  width : calc(100% - 120px)!important;
+  display: inline-block  !important;
+  border: 1px solid yellow !important;
+}
+#SampleCountFilter {
+  border: 1px solid blue;
+  
+}
+
+#SampleCountFilter > .shiny-input-container{
+  border: 1px solid magenta;
+  width: 100% !important;
+}
+
+#download_wrapper{
+  border: 1px solid orange;
+  width: 100% ;
+}
+#download_wrapper > .shiny-input-container{
+  max-width:120px !important;
+  min-width: unset !important;
+  
+}
+#download_wrapper > .selectize_control{
+  min-width: unset !important;
+  width: 100%;
+}
+#download_wrapper .selectize-input{
+  min-width: unset !important;
+  max-width:160px !important;
+  font-size: 12px;
+}
+
+#download_wrapper.selectize-control{
+  
 }
 
 
+
+/*
 #StationOneFilter > label
 {
    border: 1px solid orange;
   width: 100px !important ;
-  max-width: 100px !important;
+  min-width: 120px !important;
 }
 
+*/
 
-
-.control-lable{
-  display:block;
-  float:left;
-  /* display: table-cell; */
-}
-
-.selectize-control{
-  display:inline-block;
-  float:left;
-}
-
-.selectize-input{
-  width: 200px;
-   display:block;
-  float:left;
-}
 
 
 /*END SHINY OVERRIDES*/

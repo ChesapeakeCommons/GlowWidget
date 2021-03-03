@@ -47,15 +47,19 @@ ui <- fluidPage(
     #  tags$style(type="text/css", ".well { max-width: 200px; }")
   #  ),
     div(class = "A_subPanel", style="width:30%;",
-      uiOutput("GroupFilter"),
-      uiOutput("SampleCountFilter"),
+      #  div( id="groupSelect_wrapper",
+          uiOutput("GroupFilter"),
+          uiOutput("SampleCountFilter")
+      #  )
     ),
     div(class = "A_subPanel",style="width:54%;",
         uiOutput("GroupText")
     ),
-  div(class = "A_subPanel", style="width: 13%; ",
-      selectInput("DownloadSelect","Download Options", choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
-      downloadButton('DataDownload', 'Download'),
+  div(iclass = "A_subPanel", style="width: 13%; max-width:170px;",
+      div(id="download_wrapper",
+        selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+        downloadButton('DataDownload', 'Download')
+      )
     )
    
   ),
@@ -452,29 +456,28 @@ output$GroupText <- renderUI({
      
   #  HTML("/div>"),
     HTML("<div class='B_subPanel' style='width:30%;'>"),
-        HTML("<div>"),
+        HTML("<div><font style='color:orange;'>Group: </font>"),
         paste0(GroupName),
         HTML("</div>
-             <div>"),
-        paste0("Watershed(s): ", GroupFrame$HucList),
+             <div><font style='color:orange;'>Watershed(s): </font>"),
+        paste0( GroupFrame$HucList),
         HTML("</div>
-             <div>"),
-        paste0("# of Samples: ", GroupFrame$TotalSamples),
+             <div><font style='color:orange;'># of Samples: </font>"),
+        paste0(GroupFrame$TotalSamples),
         HTML("</div>
-             <div>"),
-        paste0("Years Sampling: ", GroupFrame$YearRange),
+             <div><font style='color:orange;'>Years Sampling: </font>"),
+        paste0(GroupFrame$YearRange),
         HTML("</div>
-             <div>"),
-        paste0("Website: ", GroupFrame$SiteLink),
-    HTML("</div>
         </div>
         <div class='B_subPanel' style='width:70%;'>
             <div>"),
-      HTML("  </div>
-            <div>"),
               paste0(GroupFrame$Description),
       HTML("</div>
-         </div>")
+            <div>
+            <font style='color:orange;'>Website: </font>"),
+    paste0(GroupFrame$SiteLink),
+        HTML("</div>
+        </div>")
   )
 })
  #### END  GROUP TEXT  #####
