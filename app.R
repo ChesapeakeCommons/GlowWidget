@@ -48,7 +48,6 @@ ui <- fluidPage(
   #  ),
     div(class = "A_subPanel", style="width:30%;",
       uiOutput("GroupFilter"),
-
       uiOutput("SampleCountFilter"),
     ),
     div(class = "A_subPanel",style="width:54%;",
@@ -113,7 +112,7 @@ suppressMessages(InputData <- read_csv("Data/Combined_Data11.csv"))
 suppressMessages(GroupData <- read_csv("Data/GroupData1.csv"))
 
 #Huc Layer 
-suppressMessages(Hucs <- rgdal::readOGR("Data/Huc8s_v3.geojson"))
+Hucs <- suppressMessages(rgdal::readOGR("Data/Huc8s_v3.geojson", verbose = FALSE))
 
 #Variable Decleration
 #Map Data
@@ -243,60 +242,81 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    selectizeInput("ParameterTwoSelect","Select Parameter Two", choices = ParameterList, multiple = FALSE)
  })
  
+ 
  output$SampleCountFilter <- renderUI({
-  #3print(MapDataReactive$df)
+   req(input$GroupSelect)
+   if("All Champions" %in% input$GroupSelect)
+   {
+     Lim <- InputData
+   }
+   else
+   {
+     Lim <- filter(InputData, Group %in% input$GroupSelect) 
+   }
    
-  Min <- InputData %>%
+  Min <-  Lim %>%
           select(StationSampleCount)%>%
           as.tibble()%>%
           arrange(StationSampleCount)%>%
           slice_head()%>%
           pull()
   
-  Max <- InputData %>%
+  Max <- Lim %>%
          select(StationSampleCount)%>%
          as.tibble()%>%
          arrange(StationSampleCount)%>%
          slice_tail()%>%
          pull()
   
-   sliderInput("SampleCountSelect","Filter by Sample Count", min = Min, max = Max, value = c(Min,Max), dragRange = TRUE)
+   sliderInput("SampleCountSelect","Filter by Sample Count", min = Min, max = Max, value = c(Min,Max), dragRange = TRUE, step = 10)
    
  })
  
- # observeEvent(input$SampleCountSelect,{
- #  req(input$GroupSelect)
- #  print(input$SampleCountSelect[1])
- #  print(input$SampleCountSelect[2])
- #  
- #  
- #  MapDataReactive$df <- MapDataReactive$df %>%
- #                        filter(StationSampleCount >= input$SampleCountSelect[1],
- #                               StationSampleCount <= input$SampleCountSelect[2])%>%
- #                               filter(Group %in% input$GroupSelect)
- # 
+ observeEvent(input$SampleCountSelect,{
+  req(input$GroupSelect)
+  print(input$SampleCountSelect[1])
+  print(input$SampleCountSelect[2])
+
+
+  MapDataReactive$df <- InputData %>%
+                        filter(StationSampleCount >= input$SampleCountSelect[1],
+                        StationSampleCount <= input$SampleCountSelect[2])
+
+  if("All Champions" %in% input$GroupSelect)
+  {
+   MapDataReactive$df <- MapDataReactive$df  
+  }
+  else
+  {
+   MapDataReactive$df <- filter(MapDataReactive$df, Group %in% input$GroupSelect) 
+  }
+# print(MapDataReactive$df)
+# print(input$GroupSelect)
+ 
  #  #Default Selection for a station is the first and second most sampled stations in the group list
- #  Choices <- MapDataReactive$df %>%
- #    arrange(desc(StationSampleCount))%>%
- #    select(station_name)%>%
- #    unique()
- # 
- #  DefaultStationOne$S <- Choices %>%
- #    slice(1L)%>%
- #    as.character()
- # 
- #  DefaultStationTwo$S <- Choices %>%
- #    slice(2L)%>%
- #    as.character()
- # 
- #  StationOneReactive$S <- DefaultStationOne$S
- #  StationTwoReactive$S <- DefaultStationTwo$S
- # 
- #  #Station One Select
- #  updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
- #  updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
- # })
- # 
+  Choices <- MapDataReactive$df %>%
+    arrange(desc(StationSampleCount))%>%
+    select(station_name)%>%
+    unique()
+
+  DefaultStationOne$S <- Choices %>%
+    slice(1L)%>%
+    as.character()
+
+  DefaultStationTwo$S <- Choices %>%
+    slice(2L)%>%
+    as.character()
+
+  StationOneReactive$S <- DefaultStationOne$S
+  StationTwoReactive$S <- DefaultStationTwo$S
+
+  #Station One Select
+  updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
+  updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
+ })
+
+
+ 
  #ObserveEvent altering MapDataReactive$df to display on the map
  #Also updates options for the first station select
  observeEvent(input$GroupSelect, {
@@ -331,6 +351,13 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    #Station One Select
    updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
    updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
+   
+   
+    ## Changes the zoom extent when group is changed
+    leafletProxy("LeafMap")%>%
+    setView(lng = MapDataReactive$df %>% filter(station_name == DefaultStationOne$S) %>% slice_head %>% pull(longitude), 
+            lat = MapDataReactive$df %>% filter(station_name == DefaultStationOne$S) %>% slice_head %>% pull(latitude), zoom = 8.5)
+    
  })
  
  #Turning the input into a reactive value so we can change it based on mapmarker clicks
@@ -465,7 +492,7 @@ output$LeafMap <- renderLeaflet({
      addLayersControl(overlayGroups = c("Watersheds"),
                      baseGroups = c("Streets", "Terrain", "Satellite"),
                      options = layersControlOptions(collapsed = FALSE,  position = 'bottomright'))#%>%
-    # setView(lng = -81.7, lat = 42.4, zoom = 6.25)
+
 })
  #Constructs the popup for the leaflet map
  PopupMaker <- function(df)
@@ -520,7 +547,7 @@ StationOneReactive$S <- MapDataReactive$df %>%
 updateSelectizeInput(session, "StationOneSelect", label = NULL, choices = unique(MapDataReactive$df$station_name), selected = StationOneReactive$S)
 })
 
-#Oberves when any data is changed 
+#Oberves when any data is changed and re renders the map
 observe({
   #Forgot that the map only needs a universe of stations - not samples. So filtering down to only distinct station_names 
   #Also sorting descending by collection date because this eventually gets fed into the popup and needs the 'last sampled'
@@ -540,28 +567,8 @@ observe({
 
 observeEvent(StationOneReactive$S,{
     req(StationOneReactive$S)
-    
     SelectedMarkerOne <- filter(MapDataReactive$df %>% distinct(station_name, .keep_all = TRUE), station_name %in% StationOneReactive$S)
-    leafletProxy("LeafMap")%>%
-    setView(lng = SelectedMarkerOne$longitude[1], lat = SelectedMarkerOne$latitude[1], zoom = 8.5)
-
   })
-
-
-#Zooms in one level on map click
-#Shifts to station when station is clicked 
-# observeEvent(input$LeafMap_click, {
-#   if(input$LeafMap_click$lng %in% as.vector(MapDataReactive$df$longitude))
-#   {
-#     leafletProxy("LeafMap")%>%
-#     setView(lng = input$LeafMap_click$lng, lat = input$LeafMap_click$lat, zoom = input$LeafMap_zoom) 
-#   }
-#   else
-#   {
-#   leafletProxy("LeafMap")%>%
-#   setView(lng = input$LeafMap_click$lng, lat = input$LeafMap_click$lat, zoom = input$LeafMap_zoom + 1)
-#   }
-# })
 
 #### END MAP #####
     
@@ -619,7 +626,7 @@ ChartMaker <- function(df,Station,Parameter)
  # print(Unit)
 
   return(dygraph(df, group = "x") %>%
-      dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
+     # dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
       dyOptions(drawGrid = FALSE, drawPoints = TRUE, pointSize = 3, connectSeparatedPoints = TRUE, rightGap = 10, colors = ColorChoice) %>%
       dyAxis("x", axisLineColor ="black", axisLineWidth = 2) %>%
       dyAxis("y", axisLineColor ="black", axisLineWidth = 2, rangePad = 5, label = Unit) %>%
