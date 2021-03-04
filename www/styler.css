@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Josefin+Sans&display=swap");
 
 body{
-  background-color: #f5f5f5;
+  background-color: #021D49;
   font-family: 'Josefin Sans',sans-serif !important;
 }
 
@@ -31,7 +31,7 @@ body{
 /*  float: left;
   */
   border: 0px solid green;
-  width: 400px;
+  width: 430px;
   height: 27px;
   padding: 0 5px 0 5px;
   
@@ -62,6 +62,7 @@ body{
   display :flex;
   flex-direction: row;
   flex-wrap: wrap;
+  background-color: #f5f5f5;
   
 }
 .leafPanel, #LeafMap {
@@ -224,6 +225,13 @@ body{
   
 }
 
+.dygraph-legend{
+  left: unset !important;
+  right: 0px !important;
+  top: -20px !important;
+  width: unset !important; 
+  background: unset !important;
+}
 
 
 /*

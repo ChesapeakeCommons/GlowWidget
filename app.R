@@ -20,10 +20,13 @@ library(lubridate)
 library(reactlog)
 library(sp)
 library(rgdal)
+library(shinyjs)
+
 options(shiny.reactlog=TRUE) 
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  shinyjs::useShinyjs(),
   theme = "styler.css",
   tags$style(type="text/css",
                    ".shiny-output-error { visibility: hidden; }",
@@ -46,7 +49,7 @@ ui <- fluidPage(
     #  tags$style(type="text/css", ".span4 { max-width: 200px; }"),
     #  tags$style(type="text/css", ".well { max-width: 200px; }")
   #  ),
-    div(class = "A_subPanel", style="width:30%;",
+    div(class = "A_subPanel", style="width:30%; min-width:360px;",
       #  div( id="groupSelect_wrapper",
           uiOutput("GroupFilter"),
           uiOutput("SampleCountFilter")
@@ -58,7 +61,7 @@ ui <- fluidPage(
   div(iclass = "A_subPanel", style="width: 13%; max-width:170px;",
       div(id="download_wrapper",
         selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
-        downloadButton('DataDownload', 'Download')
+        downloadButton('DataDownload', '')
       )
     )
    
@@ -66,6 +69,7 @@ ui <- fluidPage(
   
   
   div(class = "mainPanel_A leafPanel",
+      style = "background-color: unset;",
             
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
@@ -74,6 +78,7 @@ ui <- fluidPage(
            
   
   div(class = "mainPanel_A", style='border-top:1px solid #cccccc;',
+      #bottom:0px; position: absolute; width:100%;
     div(class = "A_subPanel", style="width: 50%;",
       uiOutput("StationOneFilter"),
       uiOutput("ParameterOneFilter"),
