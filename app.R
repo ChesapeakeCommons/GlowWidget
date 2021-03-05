@@ -32,6 +32,7 @@ ui <- fluidPage(
                    ".shiny-output-error { visibility: hidden; }",
                    ".shiny-output-error:before { visibility: hidden; }"
   ),
+  tags$link(rel = "stylesheet", type="text/css", href="https://fonts.googleapis.com/icon?family=Material+Icons"),
                 
   shinyjs::useShinyjs(),
   
@@ -76,7 +77,7 @@ ui <- fluidPage(
   
   
   div(class = "mainPanel_A leafPanel",
-      style = "background-color: unset;",
+      style = "",
             
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
@@ -467,7 +468,7 @@ output$GroupText <- renderUI({
   #  HTML("<div style='display:block; background-color: red;'>"),
      
   #  HTML("/div>"),
-    HTML("<div class='B_subPanel' style='width:30%;'>"),
+    HTML("<div class='B_subPanel' style='width:35%;'>"),
         HTML("<div><font style='color:orange;'>Group: </font>"),
         paste0(GroupName),
         HTML("</div>
@@ -480,14 +481,22 @@ output$GroupText <- renderUI({
              <div><font style='color:orange;'>Years Sampling: </font>"),
         paste0(GroupFrame$YearRange),
         HTML("</div>
-        </div>"),
-    HTML("<div id='website_subpanel' class='B_subPanel'>
-            <div>
-            <font style='color:orange;'>Website: </font>"),
-        paste0(GroupFrame$SiteLink),
-        HTML("</div>"),
-    HTML("</div>"),
-        HTML("<div class='B_subPanel' style='width: 70%; min-height:'68px'>
+              <div style='display: inline-block; width: 100%;'>
+               
+                <a style='  
+                display: block;
+                width: 100%;
+                white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;' href='"),
+                paste0(GroupFrame$SiteLink),
+        HTML("  '> <sub><font style='font-size: 14px; color:orange;' class='material-icons'>public</font></sub>"),paste0(GroupFrame$SiteLink),HTML("</a>
+            </div>
+      </div>"),
+ #   HTML("<div id='website_subpanel' class='B_subPanel'>")
+            
+  #  HTML("</div>"),
+    HTML("<div class='B_subPanel' style='width: 65%; min-height:'68px'>
             <div>"),
               paste0(GroupFrame$Description),
       HTML("</div>
