@@ -44,9 +44,9 @@ body{
   
 }
 #header-info-button {
-
+  padding-top: 5px;
   border: 1px solid green;
-  width: 100px;
+  width: 55px;
   align-self: flex-end;
 
   
@@ -65,6 +65,8 @@ body{
   background-color: #f5f5f5;
   
 }
+
+
 .leafPanel, #LeafMap {
   height: calc(100vh - 60vh);
 }
@@ -73,10 +75,16 @@ body{
 .A_subPanel{
   border: 1px solid green;
   flex-grow: 1;
-   padding: 10px 10px 10px 10px;
-    width: calc(50% - 22px);
+  padding: 10px 10px 10px 10px;
+  width: calc(50% - 22px);
+  min-height: 50px;  
 
 }
+.chartPanel{
+  min-width: 420px;
+  
+}
+
 .addFlex {
   display: flex; 
   
@@ -192,14 +200,41 @@ body{
   display: inline-block  !important;
   border: 1px solid yellow !important;
 }
+
 #SampleCountFilter {
   border: 1px solid blue;
   
 }
-
 #SampleCountFilter > .shiny-input-container{
   border: 1px solid magenta;
   width: 100% !important;
+}
+#SampleCountFilter > .shiny-input-container{
+
+  
+}  
+
+#download_subpanel{
+  float: left;
+
+  left: 0;
+  bottom: 0;
+  padding:10px 0px 0px 10px;
+  width: 352px !important;
+  min-width: 352px !important;
+  max-width: 352px !important;
+  
+}
+#website_subpanel{
+  float: right;
+
+  right: 0;
+  bottom: 0;
+  padding:10px 0px 0px 10px;
+  width: 352px !important;
+  min-width: 352px !important;
+  max-width: 352px !important;
+  
 }
 
 #download_wrapper{
@@ -207,7 +242,7 @@ body{
   width: 100% ;
 }
 #download_wrapper > .shiny-input-container{
-  max-width:120px !important;
+  max-width:295px !important;
   min-width: unset !important;
   
 }
@@ -217,12 +252,23 @@ body{
 }
 #download_wrapper .selectize-input{
   min-width: unset !important;
-  max-width:160px !important;
+  max-width:180px !important;
   font-size: 12px;
 }
 
+
 #download_wrapper.selectize-control{
   
+}
+#downloadButton_wrapper{
+  display: block;
+  float: left;
+  border: 1px solid red;
+}
+
+#DataDownload{
+  display: block;
+  float: left;
 }
 
 .dygraph-legend{

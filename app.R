@@ -55,15 +55,22 @@ ui <- fluidPage(
           uiOutput("SampleCountFilter")
       #  )
     ),
-    div(class = "A_subPanel",style="width:54%;",
-        uiOutput("GroupText")
-    ),
-  div(iclass = "A_subPanel", style="width: 13%; max-width:170px;",
-      div(id="download_wrapper",
-        selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
-        downloadButton('DataDownload', '')
-      )
+    div(class = "A_subPanel",style="width:60%;position:relative",
+        uiOutput("GroupText"),
+        div(id="download_subpanel", class="B_subPanel",
+          div(id="download_wrapper",
+              selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+              div(id='downloadButton_wrapper',
+                downloadButton('DataDownload','')
+          
+                )
+          )
+        )
+        
     )
+ # div(iclass = "A_subPanel", style="width: 13%; max-width:170px;",
+      
+#    )
    
   ),
   
@@ -79,7 +86,7 @@ ui <- fluidPage(
   
   div(class = "mainPanel_A", style='border-top:1px solid #cccccc;',
       #bottom:0px; position: absolute; width:100%;
-    div(class = "A_subPanel", style="width: 50%;",
+    div(class = "A_subPanel chartPanel", style="width: 50%;",
       uiOutput("StationOneFilter"),
       uiOutput("ParameterOneFilter"),
       
@@ -91,7 +98,7 @@ ui <- fluidPage(
         tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
       )
     ),
-    div(class = "A_subPanel", style="width: 50%;",
+    div(class = "A_subPanel chartPanel", style="width: 50%;",
       uiOutput("StationTwoFilter"),
       uiOutput("ParameterTwoFilter"),
       
@@ -473,16 +480,19 @@ output$GroupText <- renderUI({
              <div><font style='color:orange;'>Years Sampling: </font>"),
         paste0(GroupFrame$YearRange),
         HTML("</div>
-        </div>
-        <div class='B_subPanel' style='width:70%;'>
+        </div>"),
+    HTML("<div id='website_subpanel' class='B_subPanel'>
+            <div>
+            <font style='color:orange;'>Website: </font>"),
+        paste0(GroupFrame$SiteLink),
+        HTML("</div>"),
+    HTML("</div>"),
+        HTML("<div class='B_subPanel' style='width: 70%; min-height:'68px'>
             <div>"),
               paste0(GroupFrame$Description),
       HTML("</div>
-            <div>
-            <font style='color:orange;'>Website: </font>"),
-    paste0(GroupFrame$SiteLink),
-        HTML("</div>
-        </div>")
+      </div>")
+     
   )
 })
  #### END  GROUP TEXT  #####
