@@ -36,20 +36,18 @@ ui <- fluidPage(
                 
   shinyjs::useShinyjs(),
   
+  #Start Header
   div(id = "header",
       div(id = "header-title-image"),
       div(id = "header-info-button",
         actionButton("Info","Info")
       )
-  ),              
+  ),      
+  #END Header
+  #START Top Menu
                 
   div(class = "mainPanel_A", style='border-bottom:1px solid #cccccc;',
-     
-  #  tags$head(
-     # tags$style(type="text/css", "select { max-width: 160px; }"),
-    #  tags$style(type="text/css", ".span4 { max-width: 200px; }"),
-    #  tags$style(type="text/css", ".well { max-width: 200px; }")
-  #  ),
+
     div(class = "A_subPanel", style="width:30%; min-width:360px;",
       #  div( id="groupSelect_wrapper",
           uiOutput("GroupFilter"),
@@ -69,12 +67,10 @@ ui <- fluidPage(
         )
         
     )
- # div(iclass = "A_subPanel", style="width: 13%; max-width:170px;",
-      
-#    )
    
   ),
-  
+  #END Top Menu
+  #START MAP Display
   
   div(class = "mainPanel_A leafPanel",
       style = "",
@@ -84,7 +80,8 @@ ui <- fluidPage(
             leafletOutput("LeafMap", height = 'calc(100vh - 60vh)', width = '100%')
   ),
            
-  
+  #END Map Panel
+  #START Charts
   div(class = "mainPanel_A", style='border-top:1px solid #cccccc;',
       #bottom:0px; position: absolute; width:100%;
     div(class = "A_subPanel chartPanel", style="width: 50%;",
@@ -112,6 +109,7 @@ ui <- fluidPage(
         tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
       )
     )
+    #END Charts
   )
  
                

@@ -95,13 +95,13 @@ body{
   
 }
 
-.addFlex {
+/*.addFlex {
   display: flex; 
   
   flex-direction: row;
   flex-wrap: nowrap;
    justify-content:  space-between;
-}
+}*/
 
 .B_subPanel{
   border: 0px solid cyan;
@@ -116,7 +116,36 @@ body{
 
 /*END UTILITY STYLES*/
 
+
+
+
 /*START CHART STYLES*/
+
+#StationOneFilter{
+  width: 50%;
+  float: left;
+  display: block;
+  
+}
+#ParameterOneFilter{
+
+  width: 50%;
+  float: left;
+  display: block; 
+
+}
+#StationTwoFilter{
+  width: 50%;
+  float: left;
+  display: block;
+}
+#ParameterTwoFilter{
+  width: 50%;
+  float: left;
+  display: block; 
+}
+/*END CHART STYLES*/
+/*START SHINY OVERRIDES*/
 
 .control-label{
  
@@ -143,33 +172,6 @@ body{
   font-size: 12px;
 }
 
-
-#StationOneFilter{
-  width: 50%;
-  float: left;
-  display: block;
-  
-}
-#ParameterOneFilter{
-
-  width: 50%;
-  float: left;
-  display: block; 
-
-}
-#StationTwoFilter{
-  width: 50%;
-  float: left;
-  display: block;
-}
-#ParameterTwoFilter{
-  width: 50%;
-  float: left;
-  display: block; 
-}
-/*END CHART STYLES*/
-
-/*START SHINY OVERRIDES*/
 
 .form-group{
   margin-bottom: 0px !important;
