@@ -127,6 +127,11 @@ body{
   display: block;
   
 }
+
+#StationOneFilter > .shiny-input-container > div > .selectize-control > .selectize-input {
+  margin-right: 19px;
+} 
+
 #ParameterOneFilter{
 
   width: 50%;
@@ -134,16 +139,31 @@ body{
   display: block; 
 
 }
+
+#ParameterOneFilter > .shiny-input-container > div > .selectize-control > .selectize-input {
+  margin-right: 1px;
+} 
+
 #StationTwoFilter{
   width: 50%;
   float: left;
   display: block;
 }
+
+#StationTwoFilter > .shiny-input-container > div > .selectize-control > .selectize-input {
+  margin-right: 22px;
+} 
+
 #ParameterTwoFilter{
   width: 50%;
   float: left;
   display: block; 
 }
+
+#ParameterTwoFilter > .shiny-input-container > div > .selectize-control > .selectize-input {
+    margin-right: 4px;
+}
+
 /*END CHART STYLES*/
 /*START SHINY OVERRIDES*/
 
@@ -183,6 +203,7 @@ body{
   float: left;
   width: unset ;
   width: 100% !important;
+  
   /*min-width: 330px;*/
 }
 
@@ -213,6 +234,12 @@ body{
   display: inline-block  !important;
   border: 0px solid yellow !important;
 }
+#GroupFilter > .shiny-input-container > .control-label{
+  
+  min-width: 85px !important;
+  width: 85px !important;
+  
+}
 
 #SampleCountFilter {
   border: 0px solid blue;
@@ -221,11 +248,31 @@ body{
 #SampleCountFilter > .shiny-input-container{
   border: 0px solid magenta;
   width: 100% !important;
+  height: 80px;
+ 
 }
-#SampleCountFilter > .shiny-input-container{
-
-  
+#SampleCountFilter > .shiny-input-container > .control-label{
+/*  position: absolute;
+  top: 0;
+  padding-bottom: 25px;
+  */
 }  
+.js-irs-0 {
+  position: absolute;
+  top: 25px;
+  
+}
+/*
+.irs-from, .irs-to{
+  bottom: -20px !important;
+  top: unset !important;
+  z-index: 999;
+}
+.irs-min, .irs-max {
+  display: none !important;
+  
+}
+*/
 
 #download_subpanel{
   float: right;
@@ -269,6 +316,10 @@ body{
   min-width: unset !important;
   max-width:180px !important;
   font-size: 12px;
+}
+#download_wrapper > .shiny-input-container > .control-label {
+  
+  
 }
 
 
