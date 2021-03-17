@@ -54,18 +54,23 @@ ui <- fluidPage(
           uiOutput("SampleCountFilter")
       #  )
     ),
-    div(class = "A_subPanel",style="width:60%;position:relative",
-        uiOutput("GroupText"),
-        div(id="download_subpanel", class="B_subPanel",
-          div(id="download_wrapper",
-              selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
-              div(id='downloadButton_wrapper',
-                downloadButton('DataDownload','')
-          
-                )
-          )
-        )
+    div(class = "A_subPanel", id='GroupText_containter', style="position:relative",
+        uiOutput("GroupText")
         
+        
+    ), 
+   
+      div(class = "A_subPanel downloadPanel",style="position:relative;min-width: 200px; max-width: 200px;",
+           #  div(id="download_subpanel", class="B_subPanel",
+                 div(id="download_wrapper",
+                     selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+                     div(id='downloadButton_wrapper',
+                         downloadButton('DataDownload','Download')
+                         
+                     )
+                 )
+            # )
+      
     )
    
   ),
@@ -494,7 +499,7 @@ output$GroupText <- renderUI({
  #   HTML("<div id='website_subpanel' class='B_subPanel'>")
             
   #  HTML("</div>"),
-    HTML("<div class='B_subPanel' style='width: 65%; min-height:'68px'>
+    HTML("<div class='B_subPanel' style='width: 65%; min-height:68px; padding-left: 10px;'>
             <div>"),
               paste0(GroupFrame$Description),
       HTML("</div>
