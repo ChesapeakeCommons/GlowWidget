@@ -12,6 +12,21 @@ body{
 */
 }
 
+/*
+#background{
+  position: absolute;
+  top:0;
+  left: 0;
+  z-index: -999;
+  width: 100vw;
+  height: 100vw;
+  max-width:100%;
+   background-image: url('./images/cwa-leafmap-background.png');
+   background-size: auto;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+*/
 .container-fluid{
   padding: 0 0 0 0;
 }
@@ -83,7 +98,7 @@ body{
 
 
 .A_subPanel{
-  border: 1px solid green;
+  border: 0px solid green;
   flex-grow: 1;
   padding: 10px 10px 10px 10px;
   width: calc(50% - 22px);
@@ -283,7 +298,7 @@ body{
   width: 352px !important;
   min-width: 352px !important;
   max-width: 352px !important;
-  border: 1px solid green;
+  border: 0px solid green;
   
 }
 
@@ -356,7 +371,6 @@ body{
   #GroupText_containter {
     width: calc(100% - 560px);
   }
-  
 }
 
 @media only screen and (max-width: 850px) {
@@ -378,13 +392,22 @@ body{
   #GroupText_containter {
     min-width: calc(0px + 172px + 8px);
   }
+  #StationOneFilter > .shiny-input-container > .control-label,
+  #ParameterOneFilter > .shiny-input-container > .control-label,
+  #StationTwoFilter > .shiny-input-container > .control-label,
+  #ParameterTwoFilter > .shiny-input-container > .control-label{
+    min-width: 125px;
+  }
+  
+  
+  
 }
 
 
 @media only screen and (max-width: 575px) {
   
     #header-title-image{
-      width: 265px;
+      width: 275px;
       height: 17px
       
     }

@@ -36,6 +36,10 @@ ui <- fluidPage(
                 
   shinyjs::useShinyjs(),
   
+#  div(
+#    id = "background"
+#  ),
+  
   #Start Header
   div(id = "header",
       div(id = "header-title-image"),
@@ -48,7 +52,7 @@ ui <- fluidPage(
                 
   div(class = "mainPanel_A", style='border-bottom:1px solid #cccccc;',
 
-    div(class = "A_subPanel", style="width:30%; min-width:360px;",
+    div(class = "A_subPanel", style="width:30%; min-width:360px; margin-right:0px;",
       #  div( id="groupSelect_wrapper",
           uiOutput("GroupFilter"),
           uiOutput("SampleCountFilter")
