@@ -67,7 +67,7 @@ ui <- fluidPage(
       div(class = "A_subPanel downloadPanel",style="position:relative;min-width: 200px; max-width: 200px;",
            #  div(id="download_subpanel", class="B_subPanel",
                  div(id="download_wrapper",
-                     selectInput("DownloadSelect","Download Options",choices = c("Chart One","Chart One Summary", "Chart Two", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
+                     selectInput("DownloadSelect","Download Options",choices = c("Chart One Data","Chart One Summary", "Chart Two Data", "Chart Two Summary","All Data", "All Data Summary"), selected = "Chart One", multiple = FALSE),
                      div(id='downloadButton_wrapper',
                          downloadButton('DataDownload','Download')
                          
@@ -86,7 +86,7 @@ ui <- fluidPage(
             
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
-            leafletOutput("LeafMap", height = 'calc(100vh - 60vh)', width = '100%')
+            leafletOutput("LeafMap", height = 'calc(100vh - 50vh)', width = '100%')
   ),
            
   #END Map Panel
@@ -94,25 +94,29 @@ ui <- fluidPage(
   div(class = "mainPanel_A", style='border-top:1px solid #cccccc;',
       #bottom:0px; position: absolute; width:100%;
     div(class = "A_subPanel chartPanel", style="width: 50%;",
+        tags$h3(textOutput("ChartOneTitle")),
+    div(style = "width:100%; height:20px; display:block;",
       uiOutput("StationOneFilter"),
       uiOutput("ParameterOneFilter"),
+    ),
+      #tags$h3(uiOutput("StationOneValidate")),
+     # tags$h3(uiOutput("ParameterOneValidate")),
       
-      tags$h3(uiOutput("StationOneValidate")),
-      tags$h3(uiOutput("ParameterOneValidate")),
-      tags$h3(textOutput("ChartOneTitle")),
       tabsetPanel(
         tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = '100%')),
         tabPanel("Summary Statistics", tableOutput("ChartOneTable"))
       )
     ),
     div(class = "A_subPanel chartPanel", style="width: 50%;",
+        tags$h3(textOutput("ChartTwoTitle")),
+        div(style = "width:100%; height:20px; display:block;",
       uiOutput("StationTwoFilter"),
       uiOutput("ParameterTwoFilter"),
+        ),
       
+     # tags$h3(uiOutput("StationTwoValidate")),
+     # tags$h3(uiOutput("ParameterTwoValidate")),
       
-      tags$h3(uiOutput("StationTwoValidate")),
-      tags$h3(uiOutput("ParameterTwoValidate")),
-      tags$h3(textOutput("ChartTwoTitle")),
       tabsetPanel(
         tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = '100%')),
         tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
@@ -131,9 +135,9 @@ server <- function(input, output, session) {
     
 #### DATA IMPORT AND VARIABLE DECLERATION #####
 
-suppressMessages(InputData <- read_csv("Data/Combined_Data11.csv"))
+suppressMessages(InputData <- read_csv("Data/Combined_Data12.csv"))
 
-suppressMessages(GroupData <- read_csv("Data/GroupData1.csv"))
+suppressMessages(GroupData <- read_csv("Data/GroupData2.csv"))
 
 #Huc Layer 
 Hucs <- suppressMessages(rgdal::readOGR("Data/Huc8s_v3.geojson", verbose = FALSE))
@@ -206,12 +210,11 @@ GroupName <- df %>%
 #Get Unit 
 GetUnit <- function(Parameter,GroupName)
 {
-  #print(Parameter)
-  #print(GroupName)
+
   Unit <- ParamUnits %>%
     filter(ParameterList == Parameter)%>%
     select(Units)%>%
-    mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid" | GroupName == "Rocky","cm",c(as.matrix(Units))))%>%
+    mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid Creek Watershed Program" | GroupName == "Rocky River Watershed Council","cm",c(as.matrix(Units))))%>%
     as.matrix()%>%
     c()
 }
@@ -219,13 +222,30 @@ GetUnit <- function(Parameter,GroupName)
 
 ##### MODEL #### 
 observeEvent(input$Info,{
+  
+  url <- "https://clevelandwateralliance.org/smart-citizen-science"
 showModal(modalDialog(
-  title = "Cleveland Water Alliance's GLOW Widget!",
-  HTML("This application does things with things! <br> Lorem ipsum dolor sit amet, consectetur adipiscing elit,
-       sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-       quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-       Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-       Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
+  title = HTML("<b> Cleveland Water Alliance's Smart Citizen Science Widget </b>"),
+  HTML("<b> About: </b>"),
+  tags$a(href="https://clevelandwateralliance.org/smart-citizen-science", "The Smart Citizen Science Initiative "),
+  HTML("is a network that connects, supports, and accelerates the Lake Erie Citizen Science Ecosystem
+       and serves as a platform for driving regional water quality and ongoing Citizen Science Innovation. 
+       The Initiative is led at the regional level by Cleveland Water Alliance and is powered locally by a coalition of 
+       Community Foundations and Volunteer Monitoring Programs."),
+  HTML("<br>"),
+  HTML("<br>"),
+  HTML("<b> Widget Tips and Tricks: </b>"),
+  HTML("Use the group filter to choose one of the eight Smart Citizen groups. You can also control stations by the number of collected samples. 
+  Select your station by clicking on the map or using the station select pulldowns! The charts below will data depending on your station and parameter choices. 
+  You can use them to compare water quality data at two different stations, or different parameters from the same station! 
+  Download the data using the download button and download options"),
+  HTML("<br>"),
+  HTML("<br>"),
+  HTML("<b> Disclaimer: </b>"),
+  HTML("The data in this application is collected by multiple groups, using different protocols, sampling frequencies, and levels of rigor.
+  Data is solely for exploratory purposes and is not intended for analysis. 
+  Cleveland Water Alliance makes no assurance of the data's quality, or any resulting comparisons made across groups, stations, time, or parameters
+"), 
    easyClose = TRUE,
    footer = NULL,
 ))
@@ -239,7 +259,7 @@ showModal(modalDialog(
 #### FILTERS #####
 #Group Select
 output$GroupFilter <- renderUI({
-selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", InputData$Group), selected = "All Champions", multiple = TRUE)
+selectizeInput("GroupSelect","Select a Group", choices = sort(c("All Champions", InputData$Group), decreasing = FALSE), selected = "All Champions", multiple = TRUE)
 })
 
 #Station One Filter
@@ -298,9 +318,6 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
  
  observeEvent(input$SampleCountSelect,{
   req(input$GroupSelect)
-  print(input$SampleCountSelect[1])
-  print(input$SampleCountSelect[2])
-
 
   MapDataReactive$df <- InputData %>%
                         filter(StationSampleCount >= input$SampleCountSelect[1],
@@ -312,10 +329,10 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
   }
   else
   {
+    
    MapDataReactive$df <- filter(MapDataReactive$df, Group %in% input$GroupSelect) 
   }
-# print(MapDataReactive$df)
-# print(input$GroupSelect)
+
  
  #  #Default Selection for a station is the first and second most sampled stations in the group list
   Choices <- MapDataReactive$df %>%
@@ -351,7 +368,7 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    }
    else
    {
-    # print(input$GroupSelect)
+
      MapDataReactive$df <- filter(InputData, Group %in% input$GroupSelect)
    }
 
@@ -376,11 +393,21 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    updateSelectizeInput(session, "StationOneSelect", choices = Choices$station_name, selected = DefaultStationOne$S)
    updateSelectizeInput(session, "StationTwoSelect", choices = Choices$station_name, selected = DefaultStationTwo$S)
    
+   if("All Champions" %in% input$GroupSelect || nrow(data.frame(input$GroupSelect)) > 1)
+   {
    
-    ## Changes the zoom extent when group is changed
-    leafletProxy("LeafMap")%>%
-    setView(lng = MapDataReactive$df %>% filter(station_name == DefaultStationOne$S) %>% slice_head %>% pull(longitude), 
-            lat = MapDataReactive$df %>% filter(station_name == DefaultStationOne$S) %>% slice_head %>% pull(latitude), zoom = 8.5)
+     leafletProxy("LeafMap")%>%
+       setView(lng = -81.248031, lat = 42.160191, zoom = 7.45)
+   }
+   else
+   {
+     leafletProxy("LeafMap")%>%
+       setView(lng = MapDataReactive$df %>% filter(station_name == DefaultStationOne$S) %>% slice_head %>% pull(longitude), 
+               lat = MapDataReactive$df %>% filter(station_name == DefaultStationOne$S) %>% slice_head %>% pull(latitude), zoom = 8.5)
+   }
+   ## Changes the zoom extent when group is changed
+
+
     
  })
  
@@ -418,41 +445,41 @@ selectizeInput("GroupSelect","Select a Group", choices = c("All Champions", Inpu
    updateSelectizeInput(session, "ParameterTwoSelect", choices = ParameterOptions)
  })
 #### END FILTERS #####
- 
-######## VALIDATE SECTION ##########
-output$GroupValidate <- renderText({
-  #req(input$GroupSelect)
-  validate(
-    need(input$GroupSelect != "","Select a Group!")
-  )
-})
- 
-output$StationOneValidate <- renderText({
-  validate(
-    need(input$StationOneSelect  != "", "Select a Station!")
-   )
-}) 
- 
-output$StationTwoValidate <- renderText({
-  #req(input$StationTwoSelect)
-  validate(
-    need(input$StationTwoSelect != "","Select a Station!")
-  )
-}) 
- 
-output$ParameterOneValidate <- renderText({
- # req(input$ParameterOneSelect)
-  validate(
-    need(input$ParameterOneSelect != "","Select a Parameter!")
-  )
-})
- 
-output$ParameterTwoValidate <- renderText({
- # req(input$ParameterTwoSelect)
-  validate(
-    need(input$ParameterTwoSelect != "","Select a Parameter!")
-  )
-}) 
+# Commenting out this section as I think I fixed it with the correct requires - might put back in if something breaks.
+# ######## VALIDATE SECTION ##########
+# output$GroupValidate <- renderText({
+#   #req(input$GroupSelect)
+#   validate(
+#     need(input$GroupSelect != "","Select a Group!")
+#   )
+# })
+#  
+# output$StationOneValidate <- renderText({
+#   validate(
+#     need(input$StationOneSelect  != "", "Select a Station!")
+#    )
+# }) 
+#  
+# output$StationTwoValidate <- renderText({
+#   #req(input$StationTwoSelect)
+#   validate(
+#     need(input$StationTwoSelect != "","Select a Station!")
+#   )
+# }) 
+#  
+# output$ParameterOneValidate <- renderText({
+#  # req(input$ParameterOneSelect)
+#   validate(
+#     need(input$ParameterOneSelect != "","Select a Parameter!")
+#   )
+# })
+#  
+# output$ParameterTwoValidate <- renderText({
+#  # req(input$ParameterTwoSelect)
+#   validate(
+#     need(input$ParameterTwoSelect != "","Select a Parameter!")
+#   )
+# }) 
  
 ######## END VALIDATE SECTION ########## 
 
@@ -470,7 +497,8 @@ output$GroupText <- renderUI({
 #    )
     
     GroupFrame <- filter(GroupData, Group == GroupName)
-               
+
+    
     tagList(
   #  HTML("<div style='display:block; background-color: red;'>"),
      
@@ -517,6 +545,7 @@ output$GroupText <- renderUI({
 #Map Decleration
 output$LeafMap <- renderLeaflet({
      leaflet("LeafMap")%>%
+     setView(lng = -81.248031, lat = 42.160191, zoom = 7.45)%>%
      addMapPane("polygons", zIndex = 210)%>%
      addProviderTiles("CartoDB.VoyagerLabelsUnder", group = "Streets")%>%
      addPolygons(data = Hucs, color = "#b3b3b3", weight = 3, group = "Watersheds", options = pathOptions(pane = "polygons"), label = paste(Hucs$NAME, "Watershed", sep = " ")) %>%
@@ -625,7 +654,7 @@ if(nrow(dfOut) - sum(is.na(dfOut)) == 0)
            slice(1)
   suppressWarnings(dfOut[3] <- 1)
 }
-#print(dfOut)
+
 
 dfOut <- xts(dfOut, order.by = as.Date(dfOut$collection_date))
 return(dfOut)
@@ -657,7 +686,7 @@ ChartMaker <- function(df,Station,Parameter)
                  c()
   
   Unit <- GetUnit(Parameter,GroupName)
- # print(Unit)
+
 
   return(dygraph(df, group = "x") %>%
      # dyRangeSelector(height = 20, fillColor = "#757575", strokeColor = "#757575")%>%
@@ -675,6 +704,7 @@ TableMaker <- function(df,station)
   df <- MapDataReactive$df %>%
     filter(station_name == station)%>%
     select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature))
+
   
   Mean <- sapply(df, mean, na.rm=TRUE)
   Median <- sapply(df, median, na.rm=TRUE)
@@ -779,56 +809,63 @@ output$ChartOneTitle <- renderText({
 
 DownloadSelectionReactive <- reactive({
 
-if(input$DownloadSelect == "Chart One")
+if(input$DownloadSelect == "Chart One Data")
 {
-  GroupName <- GetGroup(MapDataReactive$df,StationOneReactive$S)
-  
-  Unit <- GetUnit(input$ParameterOneSelect,GroupName)
-  
-  
+
   Data <- InputData %>%
     filter(station_name == StationOneReactive$S)%>%
-    select(station_id,station_name,latitude,longitude,collection_date,input$ParameterOneSelect)%>%
-    mutate(Units = Unit)
+    select(station_id,station_name,latitude,longitude,collection_date,input$ParameterOneSelect)
+  
+    names(Data)[6] <- paste(as.character(names(Data)[6]),GetUnit(names(Data)[6],GetGroup(MapDataReactive$df,StationTwoReactive$S)))%>%
+      str_remove(.,"pH")
 }
   
 if(input$DownloadSelect == "Chart One Summary")
 {
  Data <- TableMaker(MapDataReactive$df,StationOneReactive$S)
-         Data <- data.frame(ParameterList,Data)
+         Data <- data.frame(ParameterList,Data) %>%
+          mutate(ParameterList = paste(ParameterList,GetUnit(ParameterList,GetGroup(MapDataReactive$df,StationOneReactive$S))))%>%
+          mutate(ParameterList = str_remove(ParameterList, "pH"))
+         
+
+
 }
   
-if(input$DownloadSelect == "Chart Two")
+if(input$DownloadSelect == "Chart Two Data")
 {
-
-  GroupName <- GetGroup(MapDataReactive$df,StationTwoReactive$S)
-  
-  Unit <- GetUnit(input$ParameterTwoSelect,GroupName)
-  
   Data <- InputData %>%
     filter(station_name == StationTwoReactive$S)%>%
-    select(station_id,station_name,latitude,longitude,collection_date,input$ParameterTwoSelect)%>%
-    mutate(Units = Unit)
+    select(station_id,station_name,latitude,longitude,collection_date,input$ParameterTwoSelect)
 
+ # names(Data)[6] < 
+  names(Data)[6] <- paste(as.character(names(Data)[6]),GetUnit(names(Data)[6],GetGroup(MapDataReactive$df,StationTwoReactive$S)))%>%
+                    str_remove(.,"pH")
 }
   
   if(input$DownloadSelect == "Chart Two Summary")
   {
     Data <- TableMaker(MapDataReactive$df,StationTwoReactive$S)
-    Data <- data.frame(ParameterList,Data)
+    Data <- data.frame(ParameterList,Data)%>%
+    mutate(ParameterList = paste(ParameterList,GetUnit(ParameterList,GetGroup(MapDataReactive$df,StationTwoReactive$S))))%>%
+    mutate(ParameterList = str_remove("pH"))
   }
   
 if(input$DownloadSelect == "All Data")
 {
 Data <- InputData %>% 
-        select(-c(Color,YearRange,MarkerSize))
+        select(-c(Color,YearRange,MarkerSize))%>%
+        rename("Dissolved Oxygen mg/L" = `Dissolved Oxygen`,
+           "Nitrate mg/L" = Nitrate,
+           "Phosphate mg/L" = Phosphate,
+           "Turbidity NTU"  = Turbidity,
+           "Temperature C" = Temperature)
 }
   
   if(input$DownloadSelect == "All Data Summary")
   {
-    df <- MapDataReactive$df %>%
+    df <- InputData %>%
       select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature,Group))%>%
-      mutate(Turbidity = ifelse(Group == "Euclid" | Group == "Rocky",NA,Turbidity))%>%
+      mutate(Turbidity = ifelse(Group == "Euclid Creek Watershed Program" | Group == "Rocky River Watershed Council",NA,Turbidity))%>%
       select(-c(Group))
 
     Mean <- sapply(df, mean, na.rm=TRUE)
@@ -845,7 +882,9 @@ Data <- InputData %>%
     # Turning NAs to -
     df[is.na(df)] = "-"
     
-    Data <- data.frame(ParameterList,df)
+    Data <- data.frame(ParameterList,df)%>%
+      mutate(ParameterList = paste(ParameterList,GetUnit(ParameterList,"Toledo Metroparks")))%>%
+      mutate(ParameterList = str_remove(ParameterList, "pH"))
   }
   
 return(Data)
