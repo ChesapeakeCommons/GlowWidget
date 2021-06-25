@@ -122,7 +122,7 @@ ui <- fluidPage(
         tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
       )
     )
-    #END Charts
+    
   )
  
                
@@ -135,9 +135,9 @@ server <- function(input, output, session) {
     
 #### DATA IMPORT AND VARIABLE DECLERATION #####
 
-suppressMessages(InputData <- read_csv("Data/Combined_Data12.csv"))
+suppressMessages(InputData <- read_csv("Data/Combined_Data13.csv"))
 
-suppressMessages(GroupData <- read_csv("Data/GroupData2.csv"))
+suppressMessages(GroupData <- read_csv("Data/GroupData3.csv"))
 
 #Huc Layer 
 Hucs <- suppressMessages(rgdal::readOGR("Data/Huc8s_v3.geojson", verbose = FALSE))
