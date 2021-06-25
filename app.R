@@ -86,7 +86,7 @@ ui <- fluidPage(
             
             #tags$h3(uiOutput("GroupValidate")),
          #   uiOutput("StationOneValidate"),
-            leafletOutput("LeafMap", height = 'calc(100vh - 50vh)', width = '100%')
+            leafletOutput("LeafMap", height = 'calc(100vh - 59vh)', width = '100%')
   ),
            
   #END Map Panel

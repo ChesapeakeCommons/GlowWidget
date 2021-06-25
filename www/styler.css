@@ -89,8 +89,15 @@ body{
 }
 
 
-.leafPanel, #LeafMap {
-  height: calc(100vh - 50vh);
+.leafPanel {
+  height: calc(100vh - 59vh);
+  background-color: unset;
+  /*background-color: #000000;
+*/
+}
+
+#LeafMap {
+  height: calc(100vh - 59vh);
   background-color: unset;
   /*background-color: #000000;
 */
