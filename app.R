@@ -4,10 +4,6 @@
 # Created by Gabe Watson for The Commons 
 # Created 01.11.2020 
 # See last commit on Git 
-# TO FIX
- # - #Selected Marker 'should' be able to cover all bases covered by Default Station, and StationOneReactive
- # - #Turn Chart 1 and 2 into a fuction. 
- # - #Functionanize a lot of the common activities like get group, get parameter, get color, get Choices etc.  
 
 library(shiny)
 library(tidyverse)
@@ -83,9 +79,6 @@ ui <- fluidPage(
   
   div(class = "mainPanel_A leafPanel",
       style = "",
-            
-            #tags$h3(uiOutput("GroupValidate")),
-         #   uiOutput("StationOneValidate"),
             leafletOutput("LeafMap", height = 'calc(100vh - 59vh)', width = '100%')
   ),
            
@@ -99,8 +92,6 @@ ui <- fluidPage(
       uiOutput("StationOneFilter"),
       uiOutput("ParameterOneFilter"),
     ),
-      #tags$h3(uiOutput("StationOneValidate")),
-     # tags$h3(uiOutput("ParameterOneValidate")),
       
       tabsetPanel(
         tabPanel("Chart", dygraphOutput("ChartOne", height = 200, width = '100%')),
@@ -113,10 +104,6 @@ ui <- fluidPage(
       uiOutput("StationTwoFilter"),
       uiOutput("ParameterTwoFilter"),
         ),
-      
-     # tags$h3(uiOutput("StationTwoValidate")),
-     # tags$h3(uiOutput("ParameterTwoValidate")),
-      
       tabsetPanel(
         tabPanel("Chart",  dygraphOutput("ChartTwo", height = 200, width = '100%')),
         tabPanel("Summary Statistics", tableOutput("ChartTwoTable"))
@@ -168,13 +155,6 @@ DefaultStationTwo <- reactiveValues(S = as.character(InputData %>%
                                                        slice(12)))
 ChartOneRender <- reactiveValues(N = as.numeric())
 
-#Selected Marker for map
-#SelectedMarkerOne <- reactiveValues(df = data.frame())
-
-#This needs a default set because it doesn't operate off a reactive like the first station
-
-#SelectedMarkerTwo <- reactiveValues(S = isolate(DefaultStationTwo$S)) 
-
 # Extra Info for Charting
 #ParameterList 
 ParameterList <- c("Dissolved Oxygen","Nitrate","Phosphate","pH","Turbidity","Temperature")
@@ -191,7 +171,7 @@ ParamColors <- data.frame(ParameterList,Colors)
 
 
 #### GLOBAL FUNCTIONS 
-#Frequent opperations required during program 
+#Frequent operations required during program 
 
 #Get Group 
 GetGroup <- function(df,Station)
@@ -214,7 +194,7 @@ GetUnit <- function(Parameter,GroupName)
   Unit <- ParamUnits %>%
     filter(ParameterList == Parameter)%>%
     select(Units)%>%
-    mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid Creek Watershed Program" | GroupName == "Rocky River Watershed Council","cm",c(as.matrix(Units))))%>%
+    mutate(Units = ifelse(Parameter == "Turbidity" & GroupName == "Euclid Creek Watershed Program" | Parameter == "Turbidity" & GroupName == "Rocky River Watershed Council","cm",c(as.matrix(Units))))%>%
     as.matrix()%>%
     c()
 }
@@ -334,7 +314,7 @@ selectizeInput("GroupSelect","Select a Group", choices = sort(c("All Champions",
   }
 
  
- #  #Default Selection for a station is the first and second most sampled stations in the group list
+ #Default Selection for a station is the first and second most sampled stations in the group list
   Choices <- MapDataReactive$df %>%
     arrange(desc(StationSampleCount))%>%
     select(station_name)%>%
@@ -429,7 +409,7 @@ selectizeInput("GroupSelect","Select a Group", choices = sort(c("All Champions",
    
  })
  
- #Turning Station Two input to a reactive because it helps with rerendering errors 
+ #Station Two Obesreve Event
  observeEvent(input$StationTwoSelect,{
    StationTwoReactive$S <- as.character(input$StationTwoSelect)
    
@@ -445,64 +425,19 @@ selectizeInput("GroupSelect","Select a Group", choices = sort(c("All Champions",
    updateSelectizeInput(session, "ParameterTwoSelect", choices = ParameterOptions)
  })
 #### END FILTERS #####
-# Commenting out this section as I think I fixed it with the correct requires - might put back in if something breaks.
-# ######## VALIDATE SECTION ##########
-# output$GroupValidate <- renderText({
-#   #req(input$GroupSelect)
-#   validate(
-#     need(input$GroupSelect != "","Select a Group!")
-#   )
-# })
-#  
-# output$StationOneValidate <- renderText({
-#   validate(
-#     need(input$StationOneSelect  != "", "Select a Station!")
-#    )
-# }) 
-#  
-# output$StationTwoValidate <- renderText({
-#   #req(input$StationTwoSelect)
-#   validate(
-#     need(input$StationTwoSelect != "","Select a Station!")
-#   )
-# }) 
-#  
-# output$ParameterOneValidate <- renderText({
-#  # req(input$ParameterOneSelect)
-#   validate(
-#     need(input$ParameterOneSelect != "","Select a Parameter!")
-#   )
-# })
-#  
-# output$ParameterTwoValidate <- renderText({
-#  # req(input$ParameterTwoSelect)
-#   validate(
-#     need(input$ParameterTwoSelect != "","Select a Parameter!")
-#   )
-# }) 
- 
-######## END VALIDATE SECTION ########## 
+
+
 
     
 #### GROUP TEXT #####
 output$GroupText <- renderUI({
     req(MapDataReactive$df)
-   # req(StationOneReactive$S)
-  #  req(input$GroupSelect)
-  
-#    tagList(
-#      HTML("<div style='display:none;'>"),
+
       GroupName <- GetGroup(MapDataReactive$df,DefaultStationOne$S)
-#     
-#    )
-    
-    GroupFrame <- filter(GroupData, Group == GroupName)
+      GroupFrame <- filter(GroupData, Group == GroupName)
 
     
     tagList(
-  #  HTML("<div style='display:block; background-color: red;'>"),
-     
-  #  HTML("/div>"),
     HTML("<div class='B_subPanel' style='width:35%;'>"),
         HTML("<div><font style='color:orange;'>Group: </font>"),
         paste0(GroupName),
@@ -700,7 +635,6 @@ ChartMaker <- function(df,Station,Parameter)
 # function for generating data table
 TableMaker <- function(df,station)
 {
-  
   df <- MapDataReactive$df %>%
     filter(station_name == station)%>%
     select(c(`Dissolved Oxygen`, Nitrate, Phosphate, pH, Turbidity, Temperature))
@@ -806,12 +740,9 @@ output$ChartOneTitle <- renderText({
 
 ##### DOWNLOADS #### 
 ## Download Parser ## 
-
 DownloadSelectionReactive <- reactive({
-
 if(input$DownloadSelect == "Chart One Data")
 {
-
   Data <- InputData %>%
     filter(station_name == StationOneReactive$S)%>%
     select(station_id,station_name,latitude,longitude,collection_date,input$ParameterOneSelect)
@@ -826,9 +757,6 @@ if(input$DownloadSelect == "Chart One Summary")
          Data <- data.frame(ParameterList,Data) %>%
           mutate(ParameterList = paste(ParameterList,GetUnit(ParameterList,GetGroup(MapDataReactive$df,StationOneReactive$S))))%>%
           mutate(ParameterList = str_remove(ParameterList, "pH"))
-         
-
-
 }
   
 if(input$DownloadSelect == "Chart Two Data")
@@ -836,9 +764,7 @@ if(input$DownloadSelect == "Chart Two Data")
   Data <- InputData %>%
     filter(station_name == StationTwoReactive$S)%>%
     select(station_id,station_name,latitude,longitude,collection_date,input$ParameterTwoSelect)
-
- # names(Data)[6] < 
-  names(Data)[6] <- paste(as.character(names(Data)[6]),GetUnit(names(Data)[6],GetGroup(MapDataReactive$df,StationTwoReactive$S)))%>%
+    names(Data)[6] <- paste(as.character(names(Data)[6]),GetUnit(names(Data)[6],GetGroup(MapDataReactive$df,StationTwoReactive$S)))%>%
                     str_remove(.,"pH")
 }
   
